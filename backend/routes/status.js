@@ -1,0 +1,115 @@
+const express = require('express');
+const router = express.Router();
+const { getQuery } = require('../database');
+const { checkStatus, mapStatusToMessage } = require('../services/irisService');
+const { sendSMS } = require('../services/smsService');
+
+/**
+ * Route: POST /api/status/check
+ * Vérifier le statut et envoyer une notification SMS
+ * 
+ * Body:
+ * {
+ *   "demandeur_id": 1,
+ *   "ticket_number": "F20250603000"  (Payment Reference No.)
+ * }
+ */
+router.post('/check', async (req, res) => {
+  try {
+    const { demandeur_id, ticket_number } = req.body;
+
+    if (!demandeur_id || !ticket_number) {
+      return res.status(400).json({
+        error: 'demandeur_id et ticket_number (Payment Reference) sont requis'
+      });
+    }
+
+    // Récupérer les informations du demandeur
+    const demandeur = await getQuery(
+      'SELECT * FROM demandeurs WHERE id = ?',
+      [demandeur_id]
+    );
+
+    if (!demandeur) {
+      return res.status(404).json({ error: 'Demandeur non trouvé' });
+    }
+
+    console.log(`\n🔄 Vérification du statut pour ${demandeur.nom} ${demandeur.prenom} (Ticket: ${ticket_number})`);
+
+    // Appeler l'API Iris pour vérifier le statut
+    const irisResponse = await checkStatus(ticket_number);
+
+    if (!irisResponse.success) {
+      return res.status(500).json({
+        error: 'Impossible de vérifier le statut via l\'API Iris',
+        details: irisResponse.error
+      });
+    }
+
+    const irisStatus = irisResponse.statut;
+
+    // Mapper le statut à un message personnalisé
+    const messageData = mapStatusToMessage(irisStatus, demandeur);
+    const personalizedMessage = messageData.message;
+
+    console.log(`\n📨 Message personnalisé: ${personalizedMessage.substring(0, 50)}...`);
+
+    // Envoyer le SMS
+    const smsResult = await sendSMS({
+      telephone: demandeur.telephone,
+      message: personalizedMessage,
+      demandeurId: demandeur.id,
+      statusIris: irisStatus
+    });
+
+    res.json({
+      success: true,
+      message: 'Statut vérifié et SMS envoyé avec succès',
+      verification: {
+        demandeur: {
+          id: demandeur.id,
+          reference_recu: demandeur.reference_recu,
+          nom: demandeur.nom,
+          prenom: demandeur.prenom,
+          telephone: demandeur.telephone
+        },
+        ticket_number: ticket_number,
+        statut_iris: irisStatus,
+        message_personnalise: personalizedMessage,
+        type_message: messageData.type,
+        sms_result: smsResult
+      }
+    });
+  } catch (error) {
+    console.error('❌ Erreur lors de la vérification du statut:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Route: GET /api/status/:demandeur_id
+ * Récupérer le dernier statut enregistré
+ */
+router.get('/:demandeur_id', async (req, res) => {
+  try {
+    const notification = await getQuery(
+      `SELECT * FROM notifications_sms 
+       WHERE demandeur_id = ? 
+       ORDER BY date_envoi DESC LIMIT 1`,
+      [req.params.demandeur_id]
+    );
+
+    if (!notification) {
+      return res.status(404).json({
+        message: 'Aucune notification trouvée pour ce demandeur'
+      });
+    }
+
+    res.json(notification);
+  } catch (error) {
+    console.error('Erreur lors de la récupération du statut:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+module.exports = router;

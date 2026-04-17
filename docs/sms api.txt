@@ -1,0 +1,8 @@
+user : louba
+token : 97962ccc0add0f87b0570561acc59b45
+
+lien : http://sms.interactgroup.net/index.php?app=ws&u=louba&h=97962ccc0add0f87b0570561acc59b45&op=pv&to=224624062984&msg=test+only&from=LOUBA
+
+https://sms.interactgroup.net
+user : louba
+pass : 624062984
