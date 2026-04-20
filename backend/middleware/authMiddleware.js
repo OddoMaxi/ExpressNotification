@@ -1,29 +1,36 @@
-function getAuthToken(req) {
-  const authHeader = req.headers.authorization || '';
-  return authHeader.replace('Bearer ', '').trim();
-}
+const jwt = require('jsonwebtoken');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'louba-notification-jwt-secret-2025';
+
+const EXEMPT_PATHS = ['/api/auth/login', '/api/auth/check', '/api/health'];
 
 function authenticateApi(req, res, next) {
-  const exemptPaths = [
-    '/api/auth/login',
-    '/api/auth/check',
-    '/api/health'
-  ];
-
-  if (exemptPaths.includes(req.path) || exemptPaths.some(path => req.originalUrl.startsWith(path))) {
+  if (EXEMPT_PATHS.some(p => req.originalUrl.startsWith(p))) {
     return next();
   }
 
-  const token = getAuthToken(req);
-  const expectedToken = process.env.AUTH_TOKEN || 'notification-secret-token';
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.replace('Bearer ', '').trim();
 
-  if (!token || token !== expectedToken) {
-    return res.status(401).json({ error: 'Accès non autorisé' });
+  if (!token) {
+    return res.status(401).json({ error: 'Token manquant' });
   }
 
-  next();
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    return res.status(401).json({ error: 'Token invalide ou expiré' });
+  }
 }
 
-module.exports = {
-  authenticateApi
-};
+function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Accès refusé — rôle insuffisant' });
+    }
+    next();
+  };
+}
+
+module.exports = { authenticateApi, requireRole };

@@ -139,3 +139,22 @@ body::selection {
     padding: 20px 14px 30px;
   }
 }
+
+.nav-user-info {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-right: 4px;
+}
+.nav-username { font-size: 0.82rem; color: #e2e8f0; font-weight: 500; }
+.nav-role-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.nav-role-admin       { background: #7c3aed; color: #fff; }
+.nav-role-superviseur { background: #0369a1; color: #fff; }
+.nav-role-agent       { background: #065f46; color: #fff; }

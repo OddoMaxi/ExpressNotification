@@ -125,39 +125,30 @@ async function checkStatus(ticketNumber) {
  * - Final Approval Rejected
  * - Production Completed
  */
-function mapStatusToMessage(irisStatus, demandeur) {
+const SMS_STATUTS_ACTIFS = ['final approval rejected', 'production completed'];
+
+function shouldSendSMS(irisStatus) {
+  return SMS_STATUTS_ACTIFS.includes((irisStatus || '').toLowerCase().trim());
+}
+
+function mapStatusToMessage(irisStatus) {
   const statusMessages = {
-    'pending final approval': {
-      message: `Bonjour ${demandeur.prenom}, Votre demande de passeport (Réf: ${demandeur.reference_recu}) est EN ATTENTE d'approbation finale. Veuillez patienter.`,
-      type: 'info',
-      emoji: '⏳'
-    },
-    'final approval passed': {
-      message: `Bonjour ${demandeur.prenom}, FÉLICITATIONS ! Votre demande de passeport (Réf: ${demandeur.reference_recu}) a été APPROUVÉE. Veuillez vous présenter au guichet pour retirer votre passeport.`,
-      type: 'succes',
-      emoji: '✅'
-    },
     'final approval rejected': {
-      message: `Bonjour ${demandeur.prenom}, Votre demande de passeport (Réf: ${demandeur.reference_recu}) a été REJETÉE. Veuillez contacter le centre MOFA pour plus d'informations.`,
-      type: 'erreur',
-      emoji: '❌'
+      message: `Cher client, votre demande de passeport a ete rejetee. Veuillez vous rendre au centre pour plus d'informations. Merci pour la confiance !`,
+      type: 'erreur'
     },
     'production completed': {
-      message: `Bonjour ${demandeur.prenom}, 🚨 URGENT! Votre passeport (Réf: ${demandeur.reference_recu}) est PRÊT et en retrait. Veuillez vous présenter rapidement.`,
-      type: 'urgent',
-      emoji: '🚨'
+      message: `Cher client votre passeport est pret, veuillez vous presenter au centre pour le retrait. Merci pour la confiance !`,
+      type: 'urgent'
     }
   };
 
   const normalizedStatus = (irisStatus || '').toLowerCase().trim();
-  return statusMessages[normalizedStatus] || {
-    message: `Bonjour ${demandeur.prenom}, Votre demande de passeport (Réf: ${demandeur.reference_recu}) a un nouveau statut: ${irisStatus}. Consultez le centre pour plus de détails.`,
-    type: 'info',
-    emoji: 'ℹ️'
-  };
+  return statusMessages[normalizedStatus] || null;
 }
 
 module.exports = {
   checkStatus,
-  mapStatusToMessage
+  mapStatusToMessage,
+  shouldSendSMS
 };

@@ -101,7 +101,49 @@ function initializeDatabase() {
       if (err) console.error('Erreur création table audit:', err);
       else console.log('✓ Table audit_log prête');
     });
+
+    // Table des utilisateurs
+    db.run(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'agent',
+        nom TEXT,
+        prenom TEXT,
+        email TEXT,
+        actif INTEGER DEFAULT 1,
+        date_creation DATETIME DEFAULT CURRENT_TIMESTAMP,
+        date_mise_a_jour DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `, (err) => {
+      if (err) { console.error('Erreur création table users:', err); return; }
+      console.log('✓ Table users prête');
+      seedDefaultUsers();
+    });
   });
+}
+
+async function seedDefaultUsers() {
+  const bcrypt = require('bcryptjs');
+  const defaults = [
+    { username: 'admin',       password: 'Admin123!',  role: 'admin',       nom: 'Admin',       prenom: 'Super' },
+    { username: 'superviseur', password: 'Super123!',  role: 'superviseur', nom: 'Superviseur', prenom: 'Chef'  },
+    { username: 'agent',       password: 'Agent123!',  role: 'agent',       nom: 'Agent',       prenom: 'Louba' },
+  ];
+  for (const u of defaults) {
+    const existing = await new Promise(resolve =>
+      db.get('SELECT id FROM users WHERE username = ?', [u.username], (_, row) => resolve(row))
+    );
+    if (!existing) {
+      const hash = await bcrypt.hash(u.password, 10);
+      db.run(
+        'INSERT INTO users (username, password, role, nom, prenom) VALUES (?, ?, ?, ?, ?)',
+        [u.username, hash, u.role, u.nom, u.prenom],
+        (err) => { if (!err) console.log(`✓ Utilisateur par défaut créé: ${u.username} (${u.role})`); }
+      );
+    }
+  }
 }
 
 // Fonctions utilitaires pour les requêtes

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login, saveToken, setAuthHeader } from '../services/auth';
+import { login, saveSession, setAuthHeader } from '../services/auth';
 import './Login.css';
 
 function Login({ onLogin }) {
@@ -17,9 +17,9 @@ function Login({ onLogin }) {
 
     try {
       const response = await login(username, password);
-      const token = response.data.token;
+      const { token, user } = response.data;
 
-      saveToken(token);
+      saveSession(token, user);
       setAuthHeader(token);
       if (onLogin) {
         onLogin();

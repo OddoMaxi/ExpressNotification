@@ -1,21 +1,33 @@
 import apiClient from './api';
 
-const AUTH_TOKEN_KEY = 'notificationAuthToken';
+const TOKEN_KEY = 'notificationAuthToken';
+const USER_KEY  = 'notificationUser';
 
 export function login(username, password) {
   return apiClient.post('/auth/login', { username, password });
 }
 
 export function logout() {
-  localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
 }
 
-export function saveToken(token) {
-  localStorage.setItem(AUTH_TOKEN_KEY, token);
+export function saveSession(token, user) {
+  localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
 }
 
 export function getToken() {
-  return localStorage.getItem(AUTH_TOKEN_KEY);
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function getUser() {
+  try { return JSON.parse(localStorage.getItem(USER_KEY)) || null; }
+  catch { return null; }
+}
+
+export function getRole() {
+  return getUser()?.role || null;
 }
 
 export function isAuthenticated() {
@@ -23,11 +35,8 @@ export function isAuthenticated() {
 }
 
 export function setAuthHeader(token) {
-  if (token) {
-    apiClient.defaults.headers.common.Authorization = `Bearer ${token}`;
-  } else {
-    delete apiClient.defaults.headers.common.Authorization;
-  }
+  if (token) apiClient.defaults.headers.common.Authorization = `Bearer ${token}`;
+  else delete apiClient.defaults.headers.common.Authorization;
 }
 
 export function restoreAuth() {
@@ -35,3 +44,6 @@ export function restoreAuth() {
   setAuthHeader(token);
   return !!token;
 }
+
+// Anciennes fonctions conservées pour compatibilité
+export function saveToken(token) { localStorage.setItem(TOKEN_KEY, token); }

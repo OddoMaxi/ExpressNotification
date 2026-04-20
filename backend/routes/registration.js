@@ -64,7 +64,7 @@ router.post(
       console.log(`✓ Demandeur enregistré: ${nom} ${prenom} (ID: ${result.lastID})`);
 
       // Envoyer le SMS d'accueil automatiquement
-      const welcomeMessage = `Bonjour ${prenom} ${nom} Votre demande a ete prise en compte`;
+      const welcomeMessage = `Bonjour cher client, votre demande de passport est en cours de traitement. Merci pour la confiance !`;
       
       try {
         console.log(`📱 Envoi du SMS d'accueil au ${telephone}`);

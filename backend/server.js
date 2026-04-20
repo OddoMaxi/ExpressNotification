@@ -14,6 +14,8 @@ const { authenticateApi } = require('./middleware/authMiddleware');
 const registrationRoutes = require('./routes/registration');
 const statusRoutes = require('./routes/status');
 const notificationRoutes = require('./routes/notification');
+const supervisorRoutes = require('./routes/supervisor');
+const usersRoutes = require('./routes/users');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -35,6 +37,8 @@ app.use('/api', authenticateApi);
 app.use('/api/registration', registrationRoutes);
 app.use('/api/status', statusRoutes);
 app.use('/api/notification', notificationRoutes);
+app.use('/api/supervisor', supervisorRoutes);
+app.use('/api/users', usersRoutes);
 
 // Route de santé
 app.get('/api/health', (req, res) => {

@@ -1,6 +1,6 @@
 const cron = require('node-cron');
 const { allQuery, getQuery, runQuery } = require('../database');
-const { checkStatus, mapStatusToMessage } = require('./irisService');
+const { checkStatus, mapStatusToMessage, shouldSendSMS } = require('./irisService');
 const { sendSMS } = require('./smsService');
 
 let cronJob = null;
@@ -76,89 +76,45 @@ async function processAllApplications() {
         console.log(`  New statut: ${newStatus}`);
 
         // Vérifier si le statut a changé
-        if (oldStatus !== newStatus && newStatus !== 'néant' && oldStatus !== 'néant') {
-          console.log(`  📊 CHANGEMENT DÉTECTÉ! ${oldStatus} → ${newStatus}`);
+        if (oldStatus !== newStatus) {
+          console.log(`  📊 CHANGEMENT DÉTECTÉ: ${oldStatus} → ${newStatus}`);
 
-          // Générer le message personnalisé
-          const messageData = mapStatusToMessage(newStatus, demandeur);
-          const personalizedMessage = messageData.message;
+          // Mettre à jour le statut dans la BD
+          await runQuery(
+            `UPDATE demandeurs
+             SET statut_actuel = ?,
+                 derniere_verification = CURRENT_TIMESTAMP,
+                 date_mise_a_jour = CURRENT_TIMESTAMP
+             WHERE id = ?`,
+            [newStatus, demandeur.id]
+          );
 
-          console.log(`  📱 Envoi du SMS au ${demandeur.telephone}`);
+          // SMS uniquement pour Rejeté et Passeport prêt
+          if (shouldSendSMS(newStatus)) {
+            const messageData = mapStatusToMessage(newStatus);
+            console.log(`  📱 Envoi du SMS au ${demandeur.telephone}`);
 
-          // Envoyer le SMS
-          const smsResult = await sendSMS({
-            telephone: demandeur.telephone,
-            message: personalizedMessage,
-            demandeurId: demandeur.id,
-            statusIris: newStatus
-          });
+            const smsResult = await sendSMS({
+              telephone: demandeur.telephone,
+              message: messageData.message,
+              demandeurId: demandeur.id,
+              statusIris: newStatus
+            });
 
-          if (smsResult.success) {
-            console.log(`  ✅ SMS envoyé avec succès`);
-
-            // Mettre à jour le statut en BD
-            await runQuery(
-              `UPDATE demandeurs 
-               SET statut_actuel = ?, 
-                   sms_envoye = 1, 
-                   derniere_verification = CURRENT_TIMESTAMP,
-                   date_mise_a_jour = CURRENT_TIMESTAMP 
-               WHERE id = ?`,
-              [newStatus, demandeur.id]
-            );
+            if (smsResult.success) {
+              console.log(`  ✅ SMS envoyé`);
+              await runQuery(
+                `UPDATE demandeurs SET sms_envoye = 1 WHERE id = ?`,
+                [demandeur.id]
+              );
+            } else {
+              console.log(`  ❌ Erreur envoi SMS`);
+            }
           } else {
-            console.log(`  ❌ Erreur d'envoi SMS`);
-
-            // Mettre à jour seulement le statut (pas sms_envoye)
+            console.log(`  ℹ️  Statut ${newStatus} — pas de SMS automatique`);
             await runQuery(
-              `UPDATE demandeurs 
-               SET statut_actuel = ?, 
-                   derniere_verification = CURRENT_TIMESTAMP,
-                   date_mise_a_jour = CURRENT_TIMESTAMP 
-               WHERE id = ?`,
-              [newStatus, demandeur.id]
-            );
-          }
-        } else if (oldStatus === 'néant' && newStatus !== 'néant') {
-          // Premier statut reçu
-          console.log(`  🆕 PREMIER STATUT REÇU: ${newStatus}`);
-
-          const messageData = mapStatusToMessage(newStatus, demandeur);
-          const personalizedMessage = messageData.message;
-
-          console.log(`  📱 Envoi du SMS au ${demandeur.telephone}`);
-
-          // Envoyer le SMS
-          const smsResult = await sendSMS({
-            telephone: demandeur.telephone,
-            message: personalizedMessage,
-            demandeurId: demandeur.id,
-            statusIris: newStatus
-          });
-
-          if (smsResult.success) {
-            console.log(`  ✅ SMS envoyé avec succès`);
-
-            // Mettre à jour le statut
-            await runQuery(
-              `UPDATE demandeurs 
-               SET statut_actuel = ?, 
-                   sms_envoye = 1, 
-                   derniere_verification = CURRENT_TIMESTAMP,
-                   date_mise_a_jour = CURRENT_TIMESTAMP 
-               WHERE id = ?`,
-              [newStatus, demandeur.id]
-            );
-          } else {
-            console.log(`  ❌ Erreur d'envoi SMS`);
-
-            await runQuery(
-              `UPDATE demandeurs 
-               SET statut_actuel = ?, 
-                   derniere_verification = CURRENT_TIMESTAMP,
-                   date_mise_a_jour = CURRENT_TIMESTAMP 
-               WHERE id = ?`,
-              [newStatus, demandeur.id]
+              `UPDATE demandeurs SET derniere_verification = CURRENT_TIMESTAMP WHERE id = ?`,
+              [demandeur.id]
             );
           }
         } else {
@@ -209,7 +165,7 @@ async function manuallyCheckAndSendSMS(demandeurId) {
     console.log(`  Statut actuel normalisé: ${currentStatus}`);
 
     if (currentStatus === 'néant') {
-      const personalizedMessage = `Bonjour ${demandeur.prenom} ${demandeur.nom} le traitement de votre demande est en cours`;
+      const personalizedMessage = `Bonjour cher client, votre demande de passport est en cours de traitement. Merci pour la confiance !`;
       console.log(`  Envoi du message court pour statut néant: ${personalizedMessage}`);
 
       const smsResult = await sendSMS({
@@ -258,9 +214,11 @@ async function manuallyCheckAndSendSMS(demandeurId) {
 
     const irisStatus = irisResponse.statut;
 
-    // Générer le message
-    const messageData = mapStatusToMessage(irisStatus, demandeur);
-    const personalizedMessage = messageData.message;
+    // Générer le message (SMS uniquement pour Rejeté et Passeport prêt)
+    const messageData = mapStatusToMessage(irisStatus);
+    const personalizedMessage = messageData
+      ? messageData.message
+      : `Bonjour cher client, votre demande de passport est en cours de traitement. Merci pour la confiance !`;
 
     // Envoyer le SMS
     const smsResult = await sendSMS({
