@@ -19,6 +19,41 @@
   color: #111827;
   margin: 0 0 4px 0;
 }
+.sv-header-right { display: flex; align-items: center; gap: 12px; }
+
+.sv-iris-signal {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid;
+}
+.sv-iris-signal.online  { background: #ecfdf5; border-color: #a7f3d0; }
+.sv-iris-signal.offline { background: #fef2f2; border-color: #fecaca; }
+
+.sv-iris-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: pulse 2s ease-in-out infinite;
+}
+.sv-iris-signal.online  .sv-iris-dot { background: #10b981; box-shadow: 0 0 0 3px #d1fae5; }
+.sv-iris-signal.offline .sv-iris-dot { background: #ef4444; box-shadow: 0 0 0 3px #fee2e2; animation: none; }
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 3px #d1fae5; }
+  50%       { box-shadow: 0 0 0 6px #a7f3d044; }
+}
+
+.sv-iris-info { display: flex; flex-direction: column; }
+.sv-iris-label { font-size: 0.75rem; font-weight: 600; }
+.sv-iris-signal.online  .sv-iris-label { color: #065f46; }
+.sv-iris-signal.offline .sv-iris-label { color: #991b1b; }
+.sv-iris-sub { font-size: 0.68rem; }
+.sv-iris-signal.online  .sv-iris-sub { color: #059669; }
+.sv-iris-signal.offline .sv-iris-sub { color: #dc2626; }
+
 .sv-btn-primary {
   background: #2563eb;
   color: #fff;

@@ -81,7 +81,7 @@ export default function SupervisorDashboard() {
   if (error)   return <div className="sv-center sv-danger">{error}</div>;
   if (!data)   return null;
 
-  const { stats, statusBreakdown, smsByDay, recentChanges } = data;
+  const { stats, statusBreakdown, smsByDay, recentChanges, irisHealth } = data;
 
   // Données pour le pie chart statuts
   const pieData = statusBreakdown
@@ -124,7 +124,22 @@ export default function SupervisorDashboard() {
             {stats.lastCronRun && ` · Dernière vérif IRIS : ${formatDate(stats.lastCronRun)}`}
           </span>
         </div>
-        <button className="sv-btn-primary" onClick={fetchDashboard}>Actualiser</button>
+        <div className="sv-header-right">
+          {irisHealth && (
+            <div className={`sv-iris-signal ${irisHealth.online ? 'online' : 'offline'}`}>
+              <span className="sv-iris-dot" />
+              <div className="sv-iris-info">
+                <span className="sv-iris-label">API IRIS</span>
+                <span className="sv-iris-sub">
+                  {irisHealth.online
+                    ? `En ligne · ${irisHealth.latencyMs}ms`
+                    : `Hors ligne · ${irisHealth.error || 'Injoignable'}`}
+                </span>
+              </div>
+            </div>
+          )}
+          <button className="sv-btn-primary" onClick={fetchDashboard}>Actualiser</button>
+        </div>
       </div>
 
       {/* Cartes métriques */}

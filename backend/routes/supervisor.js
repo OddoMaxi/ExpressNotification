@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { allQuery, getQuery } = require('../database');
+const { checkIrisHealth } = require('../services/irisService');
 
 router.get('/dashboard', async (req, res) => {
   try {
-    const [statusBreakdown, demandeurs, recentChanges, smsByDay] = await Promise.all([
+    const [statusBreakdown, demandeurs, recentChanges, smsByDay, irisHealth] = await Promise.all([
       allQuery(`
         SELECT statut_actuel, COUNT(*) as count
         FROM demandeurs
@@ -32,7 +33,8 @@ router.get('/dashboard', async (req, res) => {
         FROM notifications_sms
         WHERE date(date_envoi) >= date('now', '-6 days')
         GROUP BY day ORDER BY day
-      `)
+      `),
+      checkIrisHealth()
     ]);
 
     const total = demandeurs.length;
@@ -55,7 +57,8 @@ router.get('/dashboard', async (req, res) => {
       statusBreakdown,
       demandeurs,
       recentChanges,
-      smsByDay
+      smsByDay,
+      irisHealth
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

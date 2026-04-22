@@ -147,8 +147,19 @@ function mapStatusToMessage(irisStatus) {
   return statusMessages[normalizedStatus] || null;
 }
 
+async function checkIrisHealth() {
+  const start = Date.now();
+  try {
+    await generateToken();
+    return { online: true, latencyMs: Date.now() - start };
+  } catch (error) {
+    return { online: false, latencyMs: Date.now() - start, error: error.message };
+  }
+}
+
 module.exports = {
   checkStatus,
   mapStatusToMessage,
-  shouldSendSMS
+  shouldSendSMS,
+  checkIrisHealth
 };
