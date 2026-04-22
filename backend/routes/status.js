@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getQuery } = require('../database');
-const { checkStatus, mapStatusToMessage } = require('../services/irisService');
+const { checkStatus, searchApplications, mapStatusToMessage } = require('../services/irisService');
 const { sendSMS } = require('../services/smsService');
 
 /**
@@ -149,6 +149,46 @@ router.get('/verify/:ticket_number', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+/**
+ * Route: POST /api/status/search
+ * Rechercher des demandes par plage de dates et statut (max 3 mois)
+ */
+router.post('/search', async (req, res) => {
+  const { startDate, endDate, applicationStatus } = req.body;
+
+  if (!startDate || !endDate) {
+    return res.status(400).json({ error: 'startDate et endDate sont requis' });
+  }
+
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  if (isNaN(start) || isNaN(end)) {
+    return res.status(400).json({ error: 'Format de date invalide (yyyy-mm-dd attendu)' });
+  }
+
+  if (end < start) {
+    return res.status(400).json({ error: 'La date de fin doit être après la date de début' });
+  }
+
+  const diffDays = (end - start) / (1000 * 60 * 60 * 24);
+  if (diffDays > 92) {
+    return res.status(400).json({ error: 'La plage de dates ne peut pas dépasser 3 mois' });
+  }
+
+  const result = await searchApplications({
+    startDate,
+    endDate,
+    applicationStatus: applicationStatus || ''
+  });
+
+  if (!result.success) {
+    return res.status(502).json({ error: 'Impossible de joindre l\'API IRIS', details: result.error });
+  }
+
+  res.json({ success: true, total: result.data.length, data: result.data });
 });
 
 module.exports = router;

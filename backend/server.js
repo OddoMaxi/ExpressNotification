@@ -4,7 +4,7 @@ const dotenv = require('dotenv');
 const path = require('path');
 
 // Charger les variables d'environnement
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 // Importer les routes et modules
 const { initializeDatabase } = require('./database');

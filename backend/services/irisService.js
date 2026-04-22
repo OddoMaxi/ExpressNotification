@@ -37,8 +37,9 @@ async function generateToken() {
       password: process.env.IRIS_PASSWORD || 'M0fa2025!'
     });
 
-    if (response.data && response.data.access_token) {
-      authToken = response.data.access_token;
+    const tokenValue = response.data.access_token || response.data.token;
+    if (response.data && tokenValue) {
+      authToken = tokenValue;
       // expires_in est en heures (ex: 12)
       const expiresInMs = (response.data.expires_in || 12) * 3600 * 1000;
       tokenExpiry = Date.now() + expiresInMs;
@@ -89,14 +90,14 @@ async function checkStatus(ticketNumber) {
 
     if (response.status === 200 && response.data) {
       console.log(`✓ Statut reçu de l'API Iris`);
-      
-      // Extraire le statut du premier enregistrement
-      const statusValue = response.data.ApplicationStatus || response.data.status || 'en_attente';
-      
+
+      const records = response.data.data || [];
+      const statusValue = records.length > 0 ? records[0].status : 'not_found';
+
       return {
         success: true,
         statut: statusValue,
-        details: response.data,
+        details: records.length > 0 ? records[0] : null,
         raw: response.data
       };
     } else {
@@ -157,8 +158,35 @@ async function checkIrisHealth() {
   }
 }
 
+async function searchApplications({ startDate, endDate, applicationStatus }) {
+  try {
+    const token = await generateToken();
+    const response = await irisApi.post('/api/cig/ListNotifyApplication',
+      {
+        TicketNumber: '',
+        StartSubmissionDate: startDate,
+        EndSubmissionDate: endDate,
+        ApplicationStatus: applicationStatus || ''
+      },
+      { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+
+    if (response.status === 200 && response.data) {
+      return {
+        success: true,
+        data: response.data.data || [],
+        message: response.data.message
+      };
+    }
+    throw new Error('Réponse Iris invalide');
+  } catch (error) {
+    return { success: false, error: error.message, data: [] };
+  }
+}
+
 module.exports = {
   checkStatus,
+  searchApplications,
   mapStatusToMessage,
   shouldSendSMS,
   checkIrisHealth
