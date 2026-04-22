@@ -6,6 +6,7 @@ import Statistics from './components/Statistics';
 import DemandeursManagement from './components/DemandeursManagement';
 import SupervisorDashboard from './components/SupervisorDashboard';
 import UsersManagement from './components/UsersManagement';
+import StatusVerification from './components/StatusVerification';
 import Login from './components/Login';
 import { restoreAuth, logout, getRole, getUser } from './services/auth';
 import './App.css';
@@ -68,6 +69,9 @@ function App() {
                   Superviseur
                 </NavLink>
               )}
+              <NavLink to="/verification" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
+                Vérification
+              </NavLink>
               {role === 'admin' && (
                 <NavLink to="/users" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
                   Utilisateurs
@@ -114,6 +118,10 @@ function App() {
                   (role === 'agent') ? <Navigate to="/" /> :
                   <SupervisorDashboard />
                 }
+              />
+              <Route
+                path="/verification"
+                element={authenticated ? <StatusVerification /> : <Navigate to="/login" />}
               />
               <Route
                 path="/users"

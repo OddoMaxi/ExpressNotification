@@ -112,4 +112,43 @@ router.get('/:demandeur_id', async (req, res) => {
   }
 });
 
+/**
+ * Route: GET /api/status/verify/:ticket_number
+ * Vérifier le statut IRIS par numéro de ticket uniquement (sans SMS)
+ */
+router.get('/verify/:ticket_number', async (req, res) => {
+  const { ticket_number } = req.params;
+
+  if (!ticket_number || ticket_number.trim() === '') {
+    return res.status(400).json({ error: 'Numéro de ticket requis' });
+  }
+
+  try {
+    const irisResponse = await checkStatus(ticket_number.trim());
+
+    if (!irisResponse.success) {
+      return res.status(502).json({
+        error: 'Impossible de joindre l\'API IRIS',
+        details: irisResponse.error
+      });
+    }
+
+    // Chercher si ce ticket correspond à un demandeur enregistré
+    const demandeur = await getQuery(
+      'SELECT id, reference_recu, nom, prenom, telephone, service_type, statut_actuel, derniere_verification FROM demandeurs WHERE ticket_number = ?',
+      [ticket_number.trim()]
+    );
+
+    res.json({
+      success: true,
+      ticket_number,
+      statut_iris: irisResponse.statut,
+      details: irisResponse.details,
+      demandeur: demandeur || null
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
