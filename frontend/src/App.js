@@ -138,7 +138,7 @@ function App() {
 
         {authenticated && (
           <footer className="app-footer">
-            <p>© 2024 Louba Services - Système de Notification SMS</p>
+            <p>© {new Date().getFullYear()} Louba Services - Système de Notification SMS</p>
           </footer>
         )}
       </div>

@@ -2,13 +2,20 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
 
-// Charger les variables d'environnement
 dotenv.config({ path: path.join(__dirname, '.env') });
 
-// Importer les routes et modules
-const { initializeDatabase } = require('./database');
-const { startBackgroundService } = require('./services/cronService');
+// Valider les variables d'environnement requises au démarrage
+const REQUIRED_ENV = ['JWT_SECRET', 'IRIS_USERNAME', 'IRIS_PASSWORD', 'SMS_USER', 'SMS_HASH'];
+const missing = REQUIRED_ENV.filter(k => !process.env[k]);
+if (missing.length > 0) {
+  console.error(`❌ Variables d'environnement manquantes: ${missing.join(', ')}`);
+  process.exit(1);
+}
+
+const { initializeDatabase, db } = require('./database');
+const { startBackgroundService, stopBackgroundService } = require('./services/cronService');
 const authRoutes = require('./routes/auth');
 const { authenticateApi } = require('./middleware/authMiddleware');
 const registrationRoutes = require('./routes/registration');
@@ -25,10 +32,43 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Rate limiting
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Trop de requêtes, veuillez réessayer dans une minute.' }
+});
+
+const smsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Limite d\'envoi SMS atteinte, veuillez patienter.' }
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Trop de tentatives de connexion, réessayez dans 15 minutes.' }
+});
+
+app.use('/api', apiLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/registration/:id/send-sms', smsLimiter);
+app.use('/api/registration', (req, res, next) => {
+  if (req.method === 'POST' && !req.params.id) return smsLimiter(req, res, next);
+  next();
+});
+
 // Initialiser la base de données
 initializeDatabase();
 
-// Démarrer le service de background (vérification toutes les 30 minutes)
+// Démarrer le service de background
 startBackgroundService();
 
 // Routes
@@ -42,23 +82,38 @@ app.use('/api/users', usersRoutes);
 
 // Route de santé
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString() 
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString()
   });
 });
 
-// Gestion des erreurs globale
+// Gestion des erreurs globale — ne pas exposer les détails internes
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({
-    error: err.message || 'Erreur serveur interne',
+    error: process.env.NODE_ENV === 'development' ? err.message : 'Erreur serveur interne',
     status: err.status || 500
   });
 });
 
-// Démarrer le serveur
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`✓ Serveur de notification SMS démarré sur le port ${PORT}`);
   console.log(`✓ Environnement: ${process.env.NODE_ENV}`);
 });
+
+// Graceful shutdown
+function shutdown(signal) {
+  console.log(`\n${signal} reçu — arrêt du serveur...`);
+  stopBackgroundService();
+  server.close(() => {
+    db.close((err) => {
+      if (err) console.error('Erreur fermeture BD:', err.message);
+      else console.log('✓ Base de données fermée proprement');
+      process.exit(0);
+    });
+  });
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));

@@ -32,7 +32,7 @@ router.post(
         });
       }
 
-      const { reference_recu, nom, prenom, telephone, email, service_type } = req.body;
+      const { reference_recu, nom, prenom, telephone, email, service_type, ticket_number } = req.body;
 
       // Vérifier si la référence existe déjà
       const existing = await getQuery(
@@ -48,8 +48,8 @@ router.post(
 
       // Insérer le demandeur
       const query = `
-        INSERT INTO demandeurs (reference_recu, nom, prenom, telephone, email, service_type)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO demandeurs (reference_recu, nom, prenom, telephone, email, service_type, ticket_number)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `;
 
       const result = await runQuery(query, [
@@ -57,8 +57,9 @@ router.post(
         nom,
         prenom,
         telephone,
-        email,
-        service_type
+        email || null,
+        service_type,
+        ticket_number || null
       ]);
 
       console.log(`✓ Demandeur enregistré: ${nom} ${prenom} (ID: ${result.lastID})`);
@@ -99,15 +100,15 @@ router.post(
           nom,
           prenom,
           telephone,
-          email,
+          email: email || null,
           service_type,
-          ticket_number: req.body.ticket_number || null,
+          ticket_number: ticket_number || null,
           statut_actuel: 'néant'
         }
       });
     } catch (error) {
       console.error('Erreur lors de l\'enregistrement:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: 'Erreur interne du serveur' });
     }
   }
 );
@@ -130,7 +131,7 @@ router.get('/:id', async (req, res) => {
     res.json(demandeur);
   } catch (error) {
     console.error('Erreur lors de la récupération:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 });
 
@@ -141,14 +142,14 @@ router.get('/:id', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const demandeurs = await allQuery('SELECT * FROM demandeurs ORDER BY date_enregistrement DESC');
-    
+
     res.json({
       total: demandeurs.length,
       demandeurs
     });
   } catch (error) {
     console.error('Erreur lors de la récupération de la liste:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 });
 
@@ -161,7 +162,7 @@ router.put('/:id', async (req, res) => {
     const { nom, prenom, telephone, email } = req.body;
 
     const query = `
-      UPDATE demandeurs 
+      UPDATE demandeurs
       SET nom = ?, prenom = ?, telephone = ?, email = ?, date_mise_a_jour = CURRENT_TIMESTAMP
       WHERE id = ?
     `;
@@ -170,7 +171,7 @@ router.put('/:id', async (req, res) => {
       nom,
       prenom,
       telephone,
-      email,
+      email || null,
       req.params.id
     ]);
 
@@ -184,7 +185,7 @@ router.put('/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Erreur lors de la mise à jour:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 });
 
@@ -216,7 +217,7 @@ router.post('/:id/send-sms', async (req, res) => {
     }
   } catch (error) {
     console.error('Erreur lors de l\'envoi manuel du SMS:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 });
 

@@ -30,7 +30,7 @@ function initializeDatabase() {
         nom TEXT NOT NULL,
         prenom TEXT NOT NULL,
         telephone TEXT NOT NULL,
-        email TEXT NOT NULL,
+        email TEXT,
         ticket_number TEXT,
         service_type TEXT DEFAULT 'Express 72h',
         statut_actuel TEXT DEFAULT 'néant',
@@ -87,6 +87,11 @@ function initializeDatabase() {
       if (err) console.error('Erreur création table notifications:', err);
       else console.log('✓ Table notifications_sms prête');
     });
+
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_notifications_demandeur ON notifications_sms(demandeur_id, date_envoi)`,
+      (err) => { if (err) console.error('Erreur création index notifications:', err); }
+    );
 
     // Table d'audit
     db.run(`

@@ -14,12 +14,6 @@ const smsApi = axios.create({
  * @param {object} params - Paramètres d'envoi
  * @returns {Promise<object>} - Résultat de l'envoi
  */
-function truncateMessage(message, maxLength = 60) {
-  if (!message) return '';
-  if (message.length <= maxLength) return message;
-  return `${message.slice(0, maxLength - 3)}...`;
-}
-
 async function sendSMS(params) {
   const { telephone, message, demandeurId, statusIris } = params;
   const smsMessage = message;
@@ -28,9 +22,7 @@ async function sendSMS(params) {
     console.log(`📞 Envoi SMS à ${telephone}...`);
     console.log(`📝 Message SMS: ${smsMessage}`);
 
-    // Construire l'URL avec les paramètres
     const smsUrl = buildSmsUrl(telephone, smsMessage);
-    console.log(`📍 URL SMS générée: ${smsUrl}`);
 
     // Appeler l'API SMS
     const response = await smsApi.get(smsUrl);
@@ -164,7 +156,6 @@ async function getSMSHistory(demandeurId) {
 
 module.exports = {
   sendSMS,
-  buildSmsUrl,
   logSMSSending,
   getSMSHistory
 };

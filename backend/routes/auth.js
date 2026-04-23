@@ -4,7 +4,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { getQuery } = require('../database');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'louba-notification-jwt-secret-2025';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) throw new Error('JWT_SECRET est requis dans les variables d\'environnement');
 const JWT_EXPIRES = '12h';
 
 router.post('/login', async (req, res) => {

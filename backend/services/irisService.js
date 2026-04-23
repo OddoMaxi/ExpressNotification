@@ -3,12 +3,13 @@ const axios = require('axios');
 /**
  * Service pour communiquer avec l'API Iris - Guinea GCPIS MOFA
  * Permet de vérifier le statut d'une demande de passeport
- * 
+ *
  * Documentation: UAT/PIS/PCR025/0100 - Central MOFA Notification API v1.0.3.0
  */
 
 let authToken = null;
 let tokenExpiry = null;
+let tokenGenerationPromise = null;
 
 const irisApi = axios.create({
   baseURL: process.env.IRIS_BASE_URL || 'http://172.16.4.57/GCPIS/Apps/WebServices/CentralMOFANotification',
@@ -20,38 +21,51 @@ const irisApi = axios.create({
 
 /**
  * Générer un token d'authentification pour l'API Iris
+ * Utilise un verrou Promise pour éviter les générations concurrentes (race condition)
  * @returns {Promise<string>} - Le token d'authentification Bearer
  */
 async function generateToken() {
-  try {
-    // Vérifier si le token est encore valide (avec 1 minute de marge)
-    if (authToken && tokenExpiry && Date.now() < tokenExpiry - 60000) {
-      console.log('✓ Token d\'authentification réutilisé');
-      return authToken;
-    }
-
-    console.log('🔐 Génération d\'un nouveau token d\'authentification...');
-    
-    const response = await irisApi.post('/api/auth/token', {
-      username: process.env.IRIS_USERNAME || 'MOFA',
-      password: process.env.IRIS_PASSWORD || 'M0fa2025!'
-    });
-
-    const tokenValue = response.data.access_token || response.data.token;
-    if (response.data && tokenValue) {
-      authToken = tokenValue;
-      // expires_in est en heures (ex: 12)
-      const expiresInMs = (response.data.expires_in || 12) * 3600 * 1000;
-      tokenExpiry = Date.now() + expiresInMs;
-      console.log(`✓ Token généré avec succès (validité: ${response.data.expires_in || 12} heures)`);
-      return authToken;
-    } else {
-      throw new Error('Pas de token dans la réponse Iris');
-    }
-  } catch (error) {
-    console.error('❌ Erreur lors de la génération du token:', error.message);
-    throw error;
+  if (authToken && tokenExpiry && Date.now() < tokenExpiry - 60000) {
+    console.log('✓ Token d\'authentification réutilisé');
+    return authToken;
   }
+
+  if (tokenGenerationPromise) {
+    return tokenGenerationPromise;
+  }
+
+  tokenGenerationPromise = (async () => {
+    try {
+      if (authToken && tokenExpiry && Date.now() < tokenExpiry - 60000) {
+        return authToken;
+      }
+
+      console.log('🔐 Génération d\'un nouveau token d\'authentification...');
+
+      const response = await irisApi.post('/api/auth/token', {
+        username: process.env.IRIS_USERNAME,
+        password: process.env.IRIS_PASSWORD
+      });
+
+      const tokenValue = response.data.access_token || response.data.token;
+      if (response.data && tokenValue) {
+        authToken = tokenValue;
+        const expiresInMs = (response.data.expires_in || 12) * 3600 * 1000;
+        tokenExpiry = Date.now() + expiresInMs;
+        console.log(`✓ Token généré avec succès (validité: ${response.data.expires_in || 12} heures)`);
+        return authToken;
+      } else {
+        throw new Error('Pas de token dans la réponse Iris');
+      }
+    } catch (error) {
+      console.error('❌ Erreur lors de la génération du token:', error.message);
+      throw error;
+    } finally {
+      tokenGenerationPromise = null;
+    }
+  })();
+
+  return tokenGenerationPromise;
 }
 
 /**
@@ -62,19 +76,16 @@ async function generateToken() {
 async function checkStatus(ticketNumber) {
   try {
     console.log(`📤 Vérification du statut pour ticket: ${ticketNumber}`);
-    
-    // Générer un token d'authentification
+
     const token = await generateToken();
 
-    // Calculer la date de début (3 mois avant aujourd'hui) et fin (aujourd'hui)
     const endDate = new Date();
     const startDate = new Date();
     startDate.setMonth(startDate.getMonth() - 3);
-    
-    const formatDate = (date) => date.toISOString().split('T')[0]; // yyyy-mm-dd
 
-    // Appeler l'endpoint ListNotifyApplication
-    const response = await irisApi.post('/api/cig/ListNotifyApplication', 
+    const formatDate = (date) => date.toISOString().split('T')[0];
+
+    const response = await irisApi.post('/api/cig/ListNotifyApplication',
       {
         TicketNumber: ticketNumber,
         StartSubmissionDate: formatDate(startDate),
@@ -114,13 +125,8 @@ async function checkStatus(ticketNumber) {
 }
 
 /**
- * Mapper les statuts Iris à des messages personnalisés
- * @param {string} irisStatus - Statut reçu de l'API Iris
- * @returns {object} - Message personnalisé et contexte
- */
-/**
  * Mapper les statuts de l'API Iris à des messages personnalisés pour SMS
- * Statuts possibles selon UAT: 
+ * Statuts possibles selon UAT:
  * - Pending Final Approval
  * - Final Approval Passed
  * - Final Approval Rejected

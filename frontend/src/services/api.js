@@ -19,6 +19,18 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('notificationAuthToken');
+      localStorage.removeItem('notificationUser');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Service d'enregistrement
 export const registrationService = {
   register: (data) => apiClient.post('/registration', data),

@@ -3,31 +3,9 @@ const router = express.Router();
 const { allQuery, getQuery } = require('../database');
 
 /**
- * Route: GET /api/notification/:demandeur_id
- * Récupérer l'historique des notifications pour un demandeur
- */
-router.get('/:demandeur_id', async (req, res) => {
-  try {
-    const notifications = await allQuery(
-      `SELECT * FROM notifications_sms 
-       WHERE demandeur_id = ? 
-       ORDER BY date_envoi DESC`,
-      [req.params.demandeur_id]
-    );
-
-    res.json({
-      total: notifications.length,
-      notifications
-    });
-  } catch (error) {
-    console.error('Erreur lors de la récupération des notifications:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-/**
  * Route: GET /api/notification/stats/summary
  * Récupérer les statistiques générales
+ * IMPORTANT: doit être déclaré AVANT /:demandeur_id pour éviter que "stats" soit capturé comme paramètre
  */
 router.get('/stats/summary', async (req, res) => {
   try {
@@ -71,7 +49,30 @@ router.get('/stats/summary', async (req, res) => {
     });
   } catch (error) {
     console.error('Erreur lors de la récupération des statistiques:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Erreur interne du serveur' });
+  }
+});
+
+/**
+ * Route: GET /api/notification/:demandeur_id
+ * Récupérer l'historique des notifications pour un demandeur
+ */
+router.get('/:demandeur_id', async (req, res) => {
+  try {
+    const notifications = await allQuery(
+      `SELECT * FROM notifications_sms
+       WHERE demandeur_id = ?
+       ORDER BY date_envoi DESC`,
+      [req.params.demandeur_id]
+    );
+
+    res.json({
+      total: notifications.length,
+      notifications
+    });
+  } catch (error) {
+    console.error('Erreur lors de la récupération des notifications:', error);
+    res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 });
 
