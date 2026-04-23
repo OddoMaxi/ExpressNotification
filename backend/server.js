@@ -27,6 +27,9 @@ const usersRoutes = require('./routes/users');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Faire confiance au proxy Nginx (nécessaire pour express-rate-limit derrière un reverse proxy)
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(cors());
 app.use(express.json());
