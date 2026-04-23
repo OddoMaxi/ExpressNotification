@@ -1,132 +1,113 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const fs = require('fs');
+const { Pool } = require('pg');
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'data', 'notifications.db');
-
-// Créer le répertoire data s'il n'existe pas
-const dataDir = path.dirname(DB_PATH);
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
-}
-
-// Créer la connexion à la base de données
-const db = new sqlite3.Database(DB_PATH, (err) => {
-  if (err) {
-    console.error('Erreur de connexion à la BD:', err.message);
-  } else {
-    console.log('✓ Connecté à la base de données SQLite');
-  }
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Initialiser les tables
-function initializeDatabase() {
-  db.serialize(() => {
+pool.on('connect', () => console.log('✓ Connecté à PostgreSQL'));
+pool.on('error', (err) => console.error('❌ Erreur pool PostgreSQL:', err.message));
+
+// Convertit les placeholders SQLite (?) en PostgreSQL ($1, $2, ...)
+function toPostgresParams(sql) {
+  let i = 0;
+  return sql.replace(/\?/g, () => `$${++i}`);
+}
+
+async function initializeDatabase() {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
     // Table des demandeurs
-    db.run(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS demandeurs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        reference_recu TEXT UNIQUE NOT NULL,
-        nom TEXT NOT NULL,
-        prenom TEXT NOT NULL,
-        telephone TEXT NOT NULL,
-        email TEXT,
-        ticket_number TEXT,
-        service_type TEXT DEFAULT 'Express 72h',
-        statut_actuel TEXT DEFAULT 'néant',
-        derniere_verification DATETIME,
-        sms_envoye INTEGER DEFAULT 0,
-        date_enregistrement DATETIME DEFAULT CURRENT_TIMESTAMP,
-        date_mise_a_jour DATETIME DEFAULT CURRENT_TIMESTAMP
+        id                    SERIAL PRIMARY KEY,
+        reference_recu        TEXT UNIQUE NOT NULL,
+        nom                   TEXT NOT NULL,
+        prenom                TEXT NOT NULL,
+        telephone             TEXT NOT NULL,
+        email                 TEXT,
+        ticket_number         TEXT,
+        service_type          TEXT DEFAULT 'Express 72h',
+        statut_actuel         TEXT DEFAULT 'néant',
+        derniere_verification TIMESTAMP,
+        sms_envoye            INTEGER DEFAULT 0,
+        date_enregistrement   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        date_mise_a_jour      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
-    `, (err) => {
-      if (err) console.error('Erreur création table demandeurs:', err);
-      else console.log('✓ Table demandeurs prête');
-    });
+    `);
+    console.log('✓ Table demandeurs prête');
 
-    // Migration: ajouter colonne service_type si nécessaire
-    db.all(`PRAGMA table_info(demandeurs)`, (err, rows) => {
-      if (err) {
-        console.error('Erreur vérification colonnes:', err);
-        return;
-      }
+    // Migrations : colonnes ajoutées progressivement
+    const migrations = [
+      `ALTER TABLE demandeurs ADD COLUMN IF NOT EXISTS service_type TEXT DEFAULT 'Express 72h'`,
+      `ALTER TABLE demandeurs ADD COLUMN IF NOT EXISTS ticket_number TEXT`,
+      `ALTER TABLE demandeurs ADD COLUMN IF NOT EXISTS statut_actuel TEXT DEFAULT 'néant'`,
+      `ALTER TABLE demandeurs ADD COLUMN IF NOT EXISTS derniere_verification TIMESTAMP`,
+      `ALTER TABLE demandeurs ADD COLUMN IF NOT EXISTS sms_envoye INTEGER DEFAULT 0`,
+    ];
+    for (const sql of migrations) await client.query(sql);
 
-      const columnsToAdd = [
-        { name: 'service_type', sql: `ALTER TABLE demandeurs ADD COLUMN service_type TEXT DEFAULT 'Express 72h'` },
-        { name: 'ticket_number', sql: `ALTER TABLE demandeurs ADD COLUMN ticket_number TEXT` },
-        { name: 'statut_actuel', sql: `ALTER TABLE demandeurs ADD COLUMN statut_actuel TEXT DEFAULT 'néant'` },
-        { name: 'derniere_verification', sql: `ALTER TABLE demandeurs ADD COLUMN derniere_verification DATETIME` },
-        { name: 'sms_envoye', sql: `ALTER TABLE demandeurs ADD COLUMN sms_envoye INTEGER DEFAULT 0` }
-      ];
-
-      columnsToAdd.forEach(column => {
-        const hasColumn = rows.some((row) => row.name === column.name);
-        if (!hasColumn) {
-          db.run(column.sql, (alterErr) => {
-            if (alterErr) console.error(`Erreur ajout colonne ${column.name}:`, alterErr);
-            else console.log(`✓ Colonne ${column.name} ajoutée à la table demandeurs`);
-          });
-        }
-      });
-    });
-
-    // Table des notifications SMS envoyées
-    db.run(`
+    // Table des notifications SMS
+    await client.query(`
       CREATE TABLE IF NOT EXISTS notifications_sms (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        demandeur_id INTEGER NOT NULL,
-        statut_iris TEXT NOT NULL,
-        message TEXT NOT NULL,
+        id               SERIAL PRIMARY KEY,
+        demandeur_id     INTEGER NOT NULL REFERENCES demandeurs(id),
+        statut_iris      TEXT NOT NULL,
+        message          TEXT NOT NULL,
         numero_telephone TEXT NOT NULL,
-        statut_envoi TEXT DEFAULT 'en_attente',
+        statut_envoi     TEXT DEFAULT 'en_attente',
         response_api_sms TEXT,
-        date_envoi DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (demandeur_id) REFERENCES demandeurs(id)
+        date_envoi       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
-    `, (err) => {
-      if (err) console.error('Erreur création table notifications:', err);
-      else console.log('✓ Table notifications_sms prête');
-    });
+    `);
+    console.log('✓ Table notifications_sms prête');
 
-    db.run(
-      `CREATE INDEX IF NOT EXISTS idx_notifications_demandeur ON notifications_sms(demandeur_id, date_envoi)`,
-      (err) => { if (err) console.error('Erreur création index notifications:', err); }
-    );
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_notifications_demandeur
+      ON notifications_sms(demandeur_id, date_envoi)
+    `);
 
     // Table d'audit
-    db.run(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS audit_log (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        action TEXT NOT NULL,
-        demandeur_id INTEGER,
-        details TEXT,
-        date_action DATETIME DEFAULT CURRENT_TIMESTAMP
+        id            SERIAL PRIMARY KEY,
+        action        TEXT NOT NULL,
+        demandeur_id  INTEGER,
+        details       TEXT,
+        date_action   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
-    `, (err) => {
-      if (err) console.error('Erreur création table audit:', err);
-      else console.log('✓ Table audit_log prête');
-    });
+    `);
+    console.log('✓ Table audit_log prête');
 
     // Table des utilisateurs
-    db.run(`
+    await client.query(`
       CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        role TEXT NOT NULL DEFAULT 'agent',
-        nom TEXT,
-        prenom TEXT,
-        email TEXT,
-        actif INTEGER DEFAULT 1,
-        date_creation DATETIME DEFAULT CURRENT_TIMESTAMP,
-        date_mise_a_jour DATETIME DEFAULT CURRENT_TIMESTAMP
+        id               SERIAL PRIMARY KEY,
+        username         TEXT UNIQUE NOT NULL,
+        password         TEXT NOT NULL,
+        role             TEXT NOT NULL DEFAULT 'agent',
+        nom              TEXT,
+        prenom           TEXT,
+        email            TEXT,
+        actif            INTEGER DEFAULT 1,
+        date_creation    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        date_mise_a_jour TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
-    `, (err) => {
-      if (err) { console.error('Erreur création table users:', err); return; }
-      console.log('✓ Table users prête');
-      seedDefaultUsers();
-    });
-  });
+    `);
+    console.log('✓ Table users prête');
+
+    await client.query('COMMIT');
+
+    await seedDefaultUsers();
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('❌ Erreur initialisation base de données:', err.message);
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 async function seedDefaultUsers() {
@@ -137,52 +118,39 @@ async function seedDefaultUsers() {
     { username: 'agent',       password: 'Agent123!',  role: 'agent',       nom: 'Agent',       prenom: 'Louba' },
   ];
   for (const u of defaults) {
-    const existing = await new Promise(resolve =>
-      db.get('SELECT id FROM users WHERE username = ?', [u.username], (_, row) => resolve(row))
-    );
-    if (!existing) {
+    const res = await pool.query('SELECT id FROM users WHERE username = $1', [u.username]);
+    if (res.rows.length === 0) {
       const hash = await bcrypt.hash(u.password, 10);
-      db.run(
-        'INSERT INTO users (username, password, role, nom, prenom) VALUES (?, ?, ?, ?, ?)',
-        [u.username, hash, u.role, u.nom, u.prenom],
-        (err) => { if (!err) console.log(`✓ Utilisateur par défaut créé: ${u.username} (${u.role})`); }
+      await pool.query(
+        'INSERT INTO users (username, password, role, nom, prenom) VALUES ($1, $2, $3, $4, $5)',
+        [u.username, hash, u.role, u.nom, u.prenom]
       );
+      console.log(`✓ Utilisateur par défaut créé: ${u.username} (${u.role})`);
     }
   }
 }
 
-// Fonctions utilitaires pour les requêtes
+// ─── Helpers (interface identique à l'ancienne version SQLite) ──────────────
+
 function runQuery(query, params = []) {
-  return new Promise((resolve, reject) => {
-    db.run(query, params, function(err) {
-      if (err) reject(err);
-      else resolve({ lastID: this.lastID, changes: this.changes });
-    });
-  });
+  const sql = toPostgresParams(query);
+  const isInsert = sql.trim().toUpperCase().startsWith('INSERT');
+  const finalSql = isInsert ? `${sql} RETURNING id` : sql;
+
+  return pool.query(finalSql, params).then(result => ({
+    lastID:  result.rows[0]?.id ?? null,
+    changes: result.rowCount
+  }));
 }
 
 function getQuery(query, params = []) {
-  return new Promise((resolve, reject) => {
-    db.get(query, params, (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
-    });
-  });
+  const sql = toPostgresParams(query);
+  return pool.query(sql, params).then(result => result.rows[0] ?? null);
 }
 
 function allQuery(query, params = []) {
-  return new Promise((resolve, reject) => {
-    db.all(query, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
-    });
-  });
+  const sql = toPostgresParams(query);
+  return pool.query(sql, params).then(result => result.rows);
 }
 
-module.exports = {
-  db,
-  initializeDatabase,
-  runQuery,
-  getQuery,
-  allQuery
-};
+module.exports = { pool, initializeDatabase, runQuery, getQuery, allQuery };

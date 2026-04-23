@@ -7,14 +7,14 @@ const rateLimit = require('express-rate-limit');
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 // Valider les variables d'environnement requises au démarrage
-const REQUIRED_ENV = ['JWT_SECRET', 'IRIS_USERNAME', 'IRIS_PASSWORD', 'SMS_USER', 'SMS_HASH'];
+const REQUIRED_ENV = ['JWT_SECRET', 'DATABASE_URL', 'IRIS_USERNAME', 'IRIS_PASSWORD', 'SMS_USER', 'SMS_HASH'];
 const missing = REQUIRED_ENV.filter(k => !process.env[k]);
 if (missing.length > 0) {
   console.error(`❌ Variables d'environnement manquantes: ${missing.join(', ')}`);
   process.exit(1);
 }
 
-const { initializeDatabase, db } = require('./database');
+const { initializeDatabase, pool } = require('./database');
 const { startBackgroundService, stopBackgroundService } = require('./services/cronService');
 const authRoutes = require('./routes/auth');
 const { authenticateApi } = require('./middleware/authMiddleware');
@@ -106,12 +106,10 @@ const server = app.listen(PORT, () => {
 function shutdown(signal) {
   console.log(`\n${signal} reçu — arrêt du serveur...`);
   stopBackgroundService();
-  server.close(() => {
-    db.close((err) => {
-      if (err) console.error('Erreur fermeture BD:', err.message);
-      else console.log('✓ Base de données fermée proprement');
-      process.exit(0);
-    });
+  server.close(async () => {
+    await pool.end();
+    console.log('✓ Pool PostgreSQL fermé proprement');
+    process.exit(0);
   });
 }
 

@@ -29,9 +29,9 @@ router.get('/dashboard', async (req, res) => {
         LIMIT 20
       `),
       allQuery(`
-        SELECT date(date_envoi) as day, COUNT(*) as count
+        SELECT date_envoi::date AS day, COUNT(*) as count
         FROM notifications_sms
-        WHERE date(date_envoi) >= date('now', '-6 days')
+        WHERE date_envoi::date >= CURRENT_DATE - INTERVAL '6 days'
         GROUP BY day ORDER BY day
       `),
       checkIrisHealth()
