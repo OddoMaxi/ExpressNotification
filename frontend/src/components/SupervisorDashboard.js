@@ -145,28 +145,33 @@ export default function SupervisorDashboard() {
       {/* Cartes métriques */}
       <div className="sv-metrics">
         <div className="sv-metric-card sv-blue">
+          <span className="sv-metric-icon">📋</span>
           <div className="sv-metric-num">{stats.total}</div>
           <div className="sv-metric-lbl">Total demandes</div>
         </div>
         <div className="sv-metric-card sv-green">
+          <span className="sv-metric-icon">✅</span>
           <div className="sv-metric-num">
             {statusBreakdown.find(r => r.statut_actuel === 'Production Completed')?.count || 0}
           </div>
           <div className="sv-metric-lbl">Passeports prêts</div>
         </div>
         <div className="sv-metric-card sv-red">
+          <span className="sv-metric-icon">❌</span>
           <div className="sv-metric-num">
             {statusBreakdown.find(r => r.statut_actuel === 'Final Approval Rejected')?.count || 0}
           </div>
           <div className="sv-metric-lbl">Demandes rejetées</div>
         </div>
         <div className="sv-metric-card sv-orange">
+          <span className="sv-metric-icon">⏳</span>
           <div className="sv-metric-num">
             {statusBreakdown.find(r => r.statut_actuel === 'Pending Final Approval')?.count || 0}
           </div>
           <div className="sv-metric-lbl">En attente approbation</div>
         </div>
         <div className="sv-metric-card sv-gray">
+          <span className="sv-metric-icon">🎫</span>
           <div className="sv-metric-num">{stats.sansTicket}</div>
           <div className="sv-metric-lbl">Sans N° ticket</div>
         </div>
@@ -176,7 +181,7 @@ export default function SupervisorDashboard() {
       <div className="sv-charts-row">
 
         <div className="sv-chart-card">
-          <h3 className="sv-chart-title">Répartition des statuts</h3>
+          <h3 className="sv-chart-title">📊 Répartition des statuts</h3>
           {pieData.length === 0 ? (
             <p className="sv-empty">Aucune donnée</p>
           ) : (
@@ -207,7 +212,7 @@ export default function SupervisorDashboard() {
         </div>
 
         <div className="sv-chart-card">
-          <h3 className="sv-chart-title">Demandes par statut</h3>
+          <h3 className="sv-chart-title">📈 Demandes par statut</h3>
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={statusBarData} margin={{ top: 5, right: 10, left: -20, bottom: 40 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -237,7 +242,7 @@ export default function SupervisorDashboard() {
       <div className="sv-charts-row">
 
         <div className="sv-chart-card">
-          <h3 className="sv-chart-title">SMS envoyés — 7 derniers jours</h3>
+          <h3 className="sv-chart-title">📨 SMS envoyés — 7 derniers jours</h3>
           {barData.length === 0 ? (
             <p className="sv-empty">Aucun SMS sur cette période</p>
           ) : (
@@ -257,7 +262,7 @@ export default function SupervisorDashboard() {
         </div>
 
         <div className="sv-chart-card">
-          <h3 className="sv-chart-title">SMS cumulés — 7 derniers jours</h3>
+          <h3 className="sv-chart-title">📉 SMS cumulés — 7 derniers jours</h3>
           {lineData.length === 0 ? (
             <p className="sv-empty">Aucun SMS sur cette période</p>
           ) : (
@@ -286,7 +291,7 @@ export default function SupervisorDashboard() {
 
       {/* Historique des notifications récentes */}
       <section className="sv-section">
-        <h3 className="sv-chart-title">Notifications récentes</h3>
+        <h3 className="sv-chart-title">🔔 Notifications récentes</h3>
         {recentChanges.length === 0 ? (
           <p className="sv-empty">Aucune notification</p>
         ) : (

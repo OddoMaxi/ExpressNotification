@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom';
 import RegistrationForm from './components/RegistrationForm';
-import StatusChecker from './components/StatusChecker';
 import Statistics from './components/Statistics';
 import DemandeursManagement from './components/DemandeursManagement';
 import SupervisorDashboard from './components/SupervisorDashboard';
@@ -37,7 +36,6 @@ function App() {
   const Dashboard = () => (
     <>
       <RegistrationForm />
-      <StatusChecker />
       <Statistics />
     </>
   );
@@ -47,44 +45,56 @@ function App() {
       <div className="App">
         {authenticated && (
           <header className="app-header">
-            <div className="header-branding">
-              <div className="header-text">
-                <h1>Louba Services</h1>
-                <p>Gestion sécurisée des notifications SMS pour les demandeurs de passeport</p>
-              </div>
+            {/* Logo + titre */}
+            <div className="nav-brand">
+              <img src="/logo.jpg" alt="Louba Services" className="nav-logo" />
             </div>
+
+            {/* Liens de navigation */}
             <nav className="main-nav">
               {(role === 'admin' || role === 'agent') && (
-                <NavLink to="/" end className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
+                <NavLink to="/" end className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                  <span className="nav-link-icon">🏠</span>
                   Tableau de bord
                 </NavLink>
               )}
               {(role === 'admin' || role === 'agent') && (
-                <NavLink to="/management" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
-                  Gestion des demandeurs
+                <NavLink to="/management" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                  <span className="nav-link-icon">👥</span>
+                  Demandeurs
                 </NavLink>
               )}
               {(role === 'admin' || role === 'superviseur') && (
-                <NavLink to="/supervisor" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
+                <NavLink to="/supervisor" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                  <span className="nav-link-icon">📊</span>
                   Superviseur
                 </NavLink>
               )}
-              <NavLink to="/verification" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
+              <NavLink to="/verification" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                <span className="nav-link-icon">🔍</span>
                 Vérification
               </NavLink>
               {role === 'admin' && (
-                <NavLink to="/users" className={({ isActive }) => `nav-btn ${isActive ? 'active' : ''}`}>
+                <NavLink to="/users" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+                  <span className="nav-link-icon">⚙️</span>
                   Utilisateurs
                 </NavLink>
               )}
-              <div className="nav-user-info">
-                <span className="nav-username">{user?.prenom || user?.username}</span>
-                <span className={`nav-role-badge nav-role-${role}`}>{role}</span>
-              </div>
-              <button className="nav-btn logout-btn" onClick={handleLogout}>
-                Déconnexion
-              </button>
             </nav>
+
+            {/* User info + déconnexion */}
+            <div className="nav-user-section">
+              <div className="nav-user-info">
+                <div className="nav-avatar">{(user?.prenom || user?.username || '?')[0].toUpperCase()}</div>
+                <div className="nav-user-details">
+                  <span className="nav-username">{user?.prenom || user?.username}</span>
+                  <span className={`nav-role-badge nav-role-${role}`}>{role}</span>
+                </div>
+              </div>
+              <button className="nav-logout-btn" onClick={handleLogout} title="Se déconnecter">
+                <span>↩</span>
+              </button>
+            </div>
           </header>
         )}
 

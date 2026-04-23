@@ -1,4 +1,6 @@
-/* Styles globaux */
+/* ============================================================
+   Reset & base
+   ============================================================ */
 * {
   margin: 0;
   padding: 0;
@@ -6,17 +8,16 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Inter',
-    'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter',
+    'Roboto', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f5f3ff;
+  background-color: #f1f5f9;
   color: #0f172a;
 }
 
 body::selection {
-  background: rgba(124, 58, 237, 0.25);
+  background: rgba(99, 102, 241, 0.2);
 }
 
 .App {
@@ -25,136 +26,194 @@ body::selection {
   min-height: 100vh;
 }
 
+/* ============================================================
+   Header / Navbar
+   ============================================================ */
 .app-header {
-  background: #111111;
-  color: #f8fafc;
-  padding: 48px 24px;
-  text-align: center;
-  box-shadow: 0 26px 60px rgba(0, 0, 0, 0.25);
-}
-
-.header-branding {
+  position: sticky;
+  top: 0;
+  z-index: 100;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 20px;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 28px;
+  height: 64px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.06);
 }
 
-.app-logo {
-  width: 70px;
-  height: auto;
+/* ---- Branding ---- */
+.nav-brand {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
-.header-text h1 {
-  font-size: 2.6rem;
-  margin-bottom: 12px;
-  font-weight: 800;
+.nav-logo {
+  height: 42px;
+  width: auto;
+  object-fit: contain;
+  display: block;
 }
 
-.header-text p {
-  font-size: 1rem;
-  opacity: 0.85;
-  max-width: 720px;
-  margin: 0 auto;
-}
-
+/* ---- Liens de navigation ---- */
 .main-nav {
   display: flex;
-  justify-content: center;
-  gap: 16px;
-  margin-top: 26px;
-  flex-wrap: wrap;
   align-items: center;
-}
-
-.nav-btn {
-  padding: 12px 24px;
-  background-color: rgba(255, 255, 255, 0.08);
-  color: #eef2ff;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 14px;
-  cursor: pointer;
-  font-weight: 700;
-  font-size: 0.95rem;
-  transition: all 0.25s ease;
-}
-
-.nav-btn:hover {
-  background-color: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-.nav-btn.active {
-  background-color: #ede9fe;
-  color: #4c1d95;
-  border-color: #c7d2fe;
-}
-
-.logout-btn {
-  background-color: #ffffff;
-  color: #111111;
-  border-color: #c7d2fe;
-}
-
-.logout-btn:hover {
-  background-color: #e2e8f0;
-}
-
-.app-main {
+  gap: 2px;
   flex: 1;
-  padding: 36px 24px 48px;
+  justify-content: center;
 }
 
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  color: #64748b;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
 }
 
-.app-footer {
-  background-color: #4c1d95;
-  color: #ede9fe;
-  text-align: center;
-  padding: 24px;
-  font-size: 0.95rem;
-  margin-top: 32px;
+.nav-link:hover {
+  background: #f1f5f9;
+  color: #334155;
 }
 
-@media (max-width: 1024px) {
-  .app-main {
-    padding: 28px 18px 36px;
-  }
+.nav-link.active {
+  background: #eef2ff;
+  color: #4f46e5;
+  font-weight: 600;
 }
 
-@media (max-width: 768px) {
-  .header-content h1 {
-    font-size: 2rem;
-  }
+.nav-link-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
 
-  .header-content p {
-    font-size: 0.95rem;
-  }
-
-  .app-main {
-    padding: 20px 14px 30px;
-  }
+/* ---- User section ---- */
+.nav-user-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .nav-user-info {
   display: flex;
   align-items: center;
-  gap: 7px;
-  margin-right: 4px;
+  gap: 10px;
+  padding: 6px 12px 6px 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 40px;
 }
-.nav-username { font-size: 0.82rem; color: #e2e8f0; font-weight: 500; }
-.nav-role-badge {
-  font-size: 0.68rem;
+
+.nav-avatar {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.nav-user-details {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.nav-username {
+  font-size: 0.82rem;
   font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  color: #1e293b;
 }
-.nav-role-admin       { background: #7c3aed; color: #fff; }
-.nav-role-superviseur { background: #0369a1; color: #fff; }
-.nav-role-agent       { background: #065f46; color: #fff; }
+
+.nav-role-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: inline-block;
+  margin-top: 1px;
+}
+.nav-role-admin       { background: #ede9fe; color: #6d28d9; }
+.nav-role-superviseur { background: #dbeafe; color: #1d4ed8; }
+.nav-role-agent       { background: #dcfce7; color: #15803d; }
+
+.nav-logout-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fef2f2;
+  color: #ef4444;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.nav-logout-btn:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+/* ============================================================
+   Contenu principal
+   ============================================================ */
+.app-main {
+  flex: 1;
+  padding: 32px 28px 48px;
+}
+
+.container {
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+/* ============================================================
+   Footer
+   ============================================================ */
+.app-footer {
+  background: #1e293b;
+  color: #94a3b8;
+  text-align: center;
+  padding: 18px 24px;
+  font-size: 0.82rem;
+  border-top: 1px solid #334155;
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+@media (max-width: 1024px) {
+  .app-main { padding: 24px 18px 36px; }
+}
+
+@media (max-width: 768px) {
+  .app-header  { padding: 0 16px; height: 58px; }
+  .nav-logo    { height: 34px; }
+  .nav-link-icon { font-size: 1.1rem; }
+  .nav-link span:not(.nav-link-icon) { display: none; }
+  .nav-link    { padding: 8px 10px; }
+  .nav-username { display: none; }
+  .app-main    { padding: 16px 12px 28px; }
+}

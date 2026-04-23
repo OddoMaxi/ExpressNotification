@@ -1,187 +1,313 @@
-.sv-page { padding: 24px 0; }
-.sv-center { text-align: center; padding: 48px; }
-.sv-muted  { color: #9ca3af; font-size: 0.82rem; }
-.sv-danger { color: #ef4444; }
-.sv-small  { font-size: 0.78rem; }
-.sv-mono   { font-family: monospace; font-size: 0.84rem; }
-.sv-empty  { color: #9ca3af; text-align: center; padding: 32px 0; font-size: 0.85rem; }
+/* ============================================================
+   Supervisor Dashboard — Design aéré et structuré
+   ============================================================ */
 
-/* Header */
+.sv-page {
+  padding: 32px 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+  background: #f8fafc;
+  min-height: 100vh;
+}
+
+.sv-center {
+  text-align: center;
+  padding: 80px 48px;
+  font-size: 1rem;
+}
+
+/* Utilitaires */
+.sv-muted  { color: #94a3b8; font-size: 0.85rem; }
+.sv-danger { color: #ef4444; font-weight: 500; }
+.sv-small  { font-size: 0.8rem; }
+.sv-mono   { font-family: 'Courier New', monospace; font-size: 0.85rem; color: #475569; }
+.sv-empty  {
+  color: #94a3b8;
+  text-align: center;
+  padding: 48px 0;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+/* ============================================================
+   En-tête
+   ============================================================ */
 .sv-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: 36px;
+  padding-bottom: 24px;
+  border-bottom: 2px solid #e2e8f0;
+  flex-wrap: wrap;
+  gap: 16px;
 }
-.sv-title {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #111827;
-  margin: 0 0 4px 0;
-}
-.sv-header-right { display: flex; align-items: center; gap: 12px; }
 
+.sv-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.02em;
+}
+
+.sv-header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+/* Indicateur IRIS */
 .sv-iris-signal {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: 1px solid;
+  gap: 12px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: 1.5px solid;
 }
-.sv-iris-signal.online  { background: #ecfdf5; border-color: #a7f3d0; }
-.sv-iris-signal.offline { background: #fef2f2; border-color: #fecaca; }
+.sv-iris-signal.online  { background: #f0fdf4; border-color: #86efac; }
+.sv-iris-signal.offline { background: #fff1f2; border-color: #fca5a5; }
 
 .sv-iris-dot {
-  width: 10px; height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   flex-shrink: 0;
   animation: pulse 2s ease-in-out infinite;
 }
-.sv-iris-signal.online  .sv-iris-dot { background: #10b981; box-shadow: 0 0 0 3px #d1fae5; }
-.sv-iris-signal.offline .sv-iris-dot { background: #ef4444; box-shadow: 0 0 0 3px #fee2e2; animation: none; }
+.sv-iris-signal.online  .sv-iris-dot { background: #22c55e; box-shadow: 0 0 0 4px #dcfce7; }
+.sv-iris-signal.offline .sv-iris-dot { background: #f87171; box-shadow: 0 0 0 4px #fee2e2; animation: none; }
 
 @keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 3px #d1fae5; }
-  50%       { box-shadow: 0 0 0 6px #a7f3d044; }
+  0%, 100% { box-shadow: 0 0 0 4px #dcfce7; }
+  50%       { box-shadow: 0 0 0 8px #bbf7d044; }
 }
 
-.sv-iris-info { display: flex; flex-direction: column; }
-.sv-iris-label { font-size: 0.75rem; font-weight: 600; }
-.sv-iris-signal.online  .sv-iris-label { color: #065f46; }
-.sv-iris-signal.offline .sv-iris-label { color: #991b1b; }
-.sv-iris-sub { font-size: 0.68rem; }
-.sv-iris-signal.online  .sv-iris-sub { color: #059669; }
+.sv-iris-info    { display: flex; flex-direction: column; gap: 2px; }
+.sv-iris-label   { font-size: 0.8rem; font-weight: 700; }
+.sv-iris-signal.online  .sv-iris-label { color: #15803d; }
+.sv-iris-signal.offline .sv-iris-label { color: #b91c1c; }
+.sv-iris-sub     { font-size: 0.72rem; }
+.sv-iris-signal.online  .sv-iris-sub { color: #16a34a; }
 .sv-iris-signal.offline .sv-iris-sub { color: #dc2626; }
 
 .sv-btn-primary {
   background: #2563eb;
   color: #fff;
   border: none;
-  border-radius: 6px;
-  padding: 8px 18px;
-  font-size: 0.875rem;
+  border-radius: 8px;
+  padding: 10px 22px;
+  font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
 }
 .sv-btn-primary:hover { background: #1d4ed8; }
 
-/* Métriques */
+/* ============================================================
+   Cartes métriques
+   ============================================================ */
 .sv-metrics {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
 }
+
+@media (max-width: 1100px) {
+  .sv-metrics { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 640px) {
+  .sv-metrics { grid-template-columns: repeat(2, 1fr); }
+}
+
 .sv-metric-card {
-  flex: 1;
-  min-width: 120px;
-  border-radius: 10px;
-  padding: 16px 18px;
+  border-radius: 14px;
+  padding: 24px 20px;
   text-align: center;
-  border: 1px solid transparent;
+  border: 1.5px solid transparent;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
-.sv-metric-num { font-size: 2rem; font-weight: 700; line-height: 1; margin-bottom: 5px; }
-.sv-metric-lbl { font-size: 0.73rem; opacity: 0.8; line-height: 1.3; }
+.sv-metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+
+.sv-metric-icon {
+  font-size: 1.6rem;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.sv-metric-num {
+  font-size: 2.6rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+
+.sv-metric-lbl {
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.4;
+  opacity: 0.85;
+}
 
 .sv-blue   { background: #eff6ff; border-color: #bfdbfe; }
-.sv-blue   .sv-metric-num { color: #2563eb; }
-.sv-blue   .sv-metric-lbl { color: #1d4ed8; }
+.sv-blue   .sv-metric-num { color: #1d4ed8; }
+.sv-blue   .sv-metric-lbl { color: #1e40af; }
 
-.sv-green  { background: #ecfdf5; border-color: #a7f3d0; }
-.sv-green  .sv-metric-num { color: #059669; }
-.sv-green  .sv-metric-lbl { color: #047857; }
+.sv-green  { background: #f0fdf4; border-color: #86efac; }
+.sv-green  .sv-metric-num { color: #16a34a; }
+.sv-green  .sv-metric-lbl { color: #15803d; }
 
-.sv-red    { background: #fef2f2; border-color: #fecaca; }
+.sv-red    { background: #fff1f2; border-color: #fca5a5; }
 .sv-red    .sv-metric-num { color: #dc2626; }
 .sv-red    .sv-metric-lbl { color: #b91c1c; }
 
-.sv-orange { background: #fffbeb; border-color: #fde68a; }
+.sv-orange { background: #fffbeb; border-color: #fcd34d; }
 .sv-orange .sv-metric-num { color: #d97706; }
 .sv-orange .sv-metric-lbl { color: #b45309; }
 
-.sv-gray   { background: #f9fafb; border-color: #e5e7eb; }
-.sv-gray   .sv-metric-num { color: #6b7280; }
-.sv-gray   .sv-metric-lbl { color: #4b5563; }
+.sv-gray   { background: #f8fafc; border-color: #cbd5e1; }
+.sv-gray   .sv-metric-num { color: #475569; }
+.sv-gray   .sv-metric-lbl { color: #334155; }
 
-/* Charts */
+/* ============================================================
+   Grille de graphiques
+   ============================================================ */
 .sv-charts-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: 20px;
+  margin-bottom: 20px;
 }
-@media (max-width: 768px) {
+
+@media (max-width: 900px) {
   .sv-charts-row { grid-template-columns: 1fr; }
 }
 
 .sv-chart-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 18px 20px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 24px 28px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
+
 .sv-chart-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #374151;
-  margin: 0 0 14px 0;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #f3f4f6;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 20px 0;
+  padding-bottom: 14px;
+  border-bottom: 1.5px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Tooltip custom */
 .sv-tooltip {
   background: #1e293b;
-  color: #fff;
-  border-radius: 6px;
-  padding: 7px 12px;
-  font-size: 0.82rem;
+  color: #f8fafc;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
 }
 
-/* Section historique */
+/* ============================================================
+   Section historique
+   ============================================================ */
 .sv-section {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 18px 20px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 24px 28px;
   overflow-x: auto;
-  margin-top: 4px;
+  margin-top: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
 
-/* Table */
+/* ============================================================
+   Tableau
+   ============================================================ */
 .sv-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.84rem;
+  font-size: 0.875rem;
 }
+
 .sv-table thead th {
-  background: #f9fafb;
-  color: #374151;
-  font-weight: 600;
-  padding: 9px 12px;
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 12px 16px;
   text-align: left;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 2px solid #e2e8f0;
   white-space: nowrap;
 }
+
 .sv-table tbody td {
-  padding: 9px 12px;
-  border-bottom: 1px solid #f3f4f6;
-  color: #374151;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
   vertical-align: middle;
 }
-.sv-table tbody tr:last-child td { border-bottom: none; }
-.sv-table tbody tr:hover { background: #f9fafb; }
 
+.sv-table tbody tr:last-child td { border-bottom: none; }
+.sv-table tbody tr:hover { background: #f8fafc; transition: background 0.1s; }
+
+/* Badge statut */
 .sv-badge {
-  display: inline-block;
-  padding: 2px 9px;
-  border-radius: 20px;
-  font-size: 0.73rem;
-  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
   white-space: nowrap;
+  letter-spacing: 0.01em;
 }
-.sv-ok  { color: #059669; font-size: 0.78rem; font-weight: 500; }
-.sv-err { color: #dc2626; font-size: 0.78rem; font-weight: 500; }
+
+/* Statut SMS */
+.sv-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #16a34a;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.sv-ok::before  { content: '✓'; }
+.sv-err {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #dc2626;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.sv-err::before { content: '✗'; }
+
+/* ============================================================
+   Responsive mobile
+   ============================================================ */
+@media (max-width: 640px) {
+  .sv-page        { padding: 20px 16px; }
+  .sv-title       { font-size: 1.35rem; }
+  .sv-metric-num  { font-size: 2rem; }
+  .sv-chart-card,
+  .sv-section     { padding: 18px 16px; }
+}
