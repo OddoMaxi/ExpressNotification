@@ -61,7 +61,8 @@ router.get('/dashboard', async (req, res) => {
       irisHealth
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Erreur dashboard superviseur:', err.message);
+    res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 });
 
