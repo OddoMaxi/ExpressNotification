@@ -402,48 +402,6 @@ export default function SupervisorDashboard() {
         </div>
       </div>
 
-      {/* ── NOTIFICATIONS RÉCENTES ── */}
-      <div className="sv-card sv-table-card">
-        <div className="sv-card-header">
-          <h3 className="sv-card-title">Notifications récentes</h3>
-          {recentChanges.length > 0 && (
-            <span className="sv-card-badge">{recentChanges.length} enregistrements</span>
-          )}
-        </div>
-        {recentChanges.length === 0 ? (
-          <p className="sv-empty">Aucune notification enregistrée</p>
-        ) : (
-          <div className="sv-table-wrap">
-            <table className="sv-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Demandeur</th>
-                  <th>Référence</th>
-                  <th>Statut notifié</th>
-                  <th>SMS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentChanges.map((r, i) => (
-                  <tr key={i}>
-                    <td className="sv-muted sv-small">{formatDate(r.date_envoi)}</td>
-                    <td className="sv-bold">{r.prenom} {r.nom}</td>
-                    <td className="sv-mono">{r.reference_recu}</td>
-                    <td><StatusBadge statut={r.statut_iris} /></td>
-                    <td>
-                      <span className={r.statut_envoi === 'envoye' ? 'sv-ok' : 'sv-err'}>
-                        {r.statut_envoi === 'envoye' ? 'Envoyé' : 'Échec'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
     </div>
   );
 }
