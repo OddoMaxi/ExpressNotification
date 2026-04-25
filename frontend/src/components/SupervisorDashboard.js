@@ -318,38 +318,6 @@ export default function SupervisorDashboard() {
         {/* ── SIDEBAR DROITE ── */}
         <div className="sv-col-side">
 
-          {/* Statut IRIS */}
-          <div className="sv-card sv-iris-card">
-            <div className="sv-card-header">
-              <h3 className="sv-card-title">Connexion IRIS</h3>
-            </div>
-            {irisHealth ? (
-              <div className={`sv-iris-status-block ${irisHealth.online ? 'online' : 'offline'}`}>
-                <div className="sv-iris-indicator">
-                  <span className="sv-dot-lg" />
-                  <span className="sv-iris-state">{irisHealth.online ? 'En ligne' : 'Hors ligne'}</span>
-                </div>
-                {irisHealth.online && (
-                  <div className="sv-iris-latency">
-                    <span className="sv-iris-latency-val">{irisHealth.latencyMs} ms</span>
-                    <span className="sv-iris-latency-lbl">Latence</span>
-                  </div>
-                )}
-                {!irisHealth.online && irisHealth.error && (
-                  <p className="sv-iris-err">{irisHealth.error}</p>
-                )}
-              </div>
-            ) : (
-              <p className="sv-empty">Indisponible</p>
-            )}
-            {stats.lastCronRun && (
-              <div className="sv-iris-cron">
-                <span className="sv-cron-label">Dernière vérif.</span>
-                <span className="sv-cron-val">{formatDate(stats.lastCronRun)}</span>
-              </div>
-            )}
-          </div>
-
           {/* Taux de réussite */}
           <div className="sv-card sv-gauge-card">
             <div className="sv-card-header">
