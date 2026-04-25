@@ -91,15 +91,15 @@ function buildSmsUrl(telephone, message) {
 
   const params = new URLSearchParams({
     app: 'ws',
-    u: process.env.SMS_USER || 'louba',
-    h: process.env.SMS_HASH || '97962ccc0add0f87b0570561acc59b45',
+    u: process.env.SMS_USER,
+    h: process.env.SMS_HASH,
     op: 'pv',
     to: cleanPhone,
     msg: message,
     from: process.env.SMS_FROM || 'LOUBA'
   });
 
-  const baseUrl = process.env.SMS_API_URL || 'http://sms.interactgroup.net/index.php';
+  const baseUrl = process.env.SMS_API_URL;
   const separator = baseUrl.includes('?') ? '&' : '?';
 
   return `${baseUrl}${separator}${params.toString()}`;

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { registrationService } from '../services/api';
+import { PHONE_REGEX } from '../constants';
 import './RegistrationForm.css';
 
 /**
@@ -32,6 +33,12 @@ function RegistrationForm({ onSuccess }) {
     setLoading(true);
     setError('');
     setMessage('');
+
+    if (!PHONE_REGEX.test(formData.telephone)) {
+      setError('Numéro de téléphone invalide. Format attendu : +224XXXXXXXXX ou 9 chiffres');
+      setLoading(false);
+      return;
+    }
 
     try {
       const response = await registrationService.register(formData);
@@ -135,7 +142,7 @@ function RegistrationForm({ onSuccess }) {
         </div>
 
         <div className="form-group">
-          <label htmlFor="email">Email:</label>
+          <label htmlFor="email">Email <span style={{fontWeight:'normal',color:'#9ca3af'}}>(optionnel)</span> :</label>
           <input
             type="email"
             id="email"

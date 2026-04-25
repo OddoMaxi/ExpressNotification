@@ -6,6 +6,7 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 const apiClient = axios.create({
   baseURL: API_URL,
   timeout: 10000,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -13,16 +14,17 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('notificationAuthToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const url = error.config?.url || '';
+    const is401 = error.response?.status === 401;
+    const isCheckRoute = url.includes('/auth/check');
+    if (is401 && !isCheckRoute) {
       localStorage.removeItem('notificationAuthToken');
       localStorage.removeItem('notificationUser');
       window.location.href = '/login';
@@ -37,6 +39,7 @@ export const registrationService = {
   getAll: () => apiClient.get('/registration'),
   getById: (id) => apiClient.get(`/registration/${id}`),
   update: (id, data) => apiClient.put(`/registration/${id}`, data),
+  delete: (id) => apiClient.delete(`/registration/${id}`),
   sendManualSMS: (id) => apiClient.post(`/registration/${id}/send-sms`)
 };
 

@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
@@ -7,17 +8,21 @@ const rateLimit = require('express-rate-limit');
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 // Valider les variables d'environnement requises au démarrage
-const REQUIRED_ENV = ['JWT_SECRET', 'DATABASE_URL', 'IRIS_USERNAME', 'IRIS_PASSWORD', 'SMS_USER', 'SMS_HASH'];
+const REQUIRED_ENV = ['JWT_SECRET', 'DATABASE_URL', 'IRIS_USERNAME', 'IRIS_PASSWORD', 'SMS_USER', 'SMS_HASH', 'SMS_API_URL'];
 const missing = REQUIRED_ENV.filter(k => !process.env[k]);
 if (missing.length > 0) {
   console.error(`❌ Variables d'environnement manquantes: ${missing.join(', ')}`);
+  process.exit(1);
+}
+if (process.env.JWT_SECRET.length < 32) {
+  console.error('❌ JWT_SECRET trop court — minimum 32 caractères requis');
   process.exit(1);
 }
 
 const { initializeDatabase, pool } = require('./database');
 const { startBackgroundService, stopBackgroundService } = require('./services/cronService');
 const authRoutes = require('./routes/auth');
-const { authenticateApi } = require('./middleware/authMiddleware');
+const { authenticateApi, requireRole } = require('./middleware/authMiddleware');
 const registrationRoutes = require('./routes/registration');
 const statusRoutes = require('./routes/status');
 const notificationRoutes = require('./routes/notification');
@@ -42,15 +47,17 @@ app.use(cors({
   },
   credentials: true
 }));
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Rate limiting
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 30,
+  max: 120,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.path === '/auth/check' || req.path === '/health',
   message: { error: 'Trop de requêtes, veuillez réessayer dans une minute.' }
 });
 
@@ -64,7 +71,7 @@ const smsLimiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Trop de tentatives de connexion, réessayez dans 15 minutes.' }
@@ -90,7 +97,7 @@ app.use('/api', authenticateApi);
 app.use('/api/registration', registrationRoutes);
 app.use('/api/status', statusRoutes);
 app.use('/api/notification', notificationRoutes);
-app.use('/api/supervisor', supervisorRoutes);
+app.use('/api/supervisor', requireRole('superviseur', 'admin'), supervisorRoutes);
 app.use('/api/users', usersRoutes);
 
 // Route de santé

@@ -6,16 +6,7 @@ import {
 } from 'recharts';
 import apiClient from '../services/api';
 import './SupervisorDashboard.css';
-
-const STATUS_CONFIG = {
-  'néant':                   { label: 'Non traité',             color: '#6b7280' },
-  'Pending Final Approval':  { label: 'En attente approbation', color: '#f59e0b' },
-  'Final Approval Passed':   { label: 'Approuvé',               color: '#10b981' },
-  'Final Approval Rejected': { label: 'Rejeté',                 color: '#ef4444' },
-  'Production Completed':    { label: 'Passeport prêt',         color: '#3b82f6' },
-};
-
-const STATUS_ORDER = Object.keys(STATUS_CONFIG);
+import { STATUS_CONFIG, STATUS_ORDER, formatDate, formatDateShort } from '../constants';
 
 function StatusBadge({ statut }) {
   const cfg = STATUS_CONFIG[statut] || { label: statut, color: '#6b7280' };
@@ -26,19 +17,6 @@ function StatusBadge({ statut }) {
   );
 }
 
-function formatDate(dt) {
-  if (!dt) return '—';
-  return new Date(dt).toLocaleString('fr-FR', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit'
-  });
-}
-
-function formatDateShort(str) {
-  if (!str) return '';
-  const [, m, d] = str.split('-');
-  return `${d}/${m}`;
-}
 
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
@@ -64,8 +42,17 @@ export default function SupervisorDashboard() {
       setData(res.data);
       setLastRefresh(new Date());
       setError('');
-    } catch {
-      setError('Erreur de chargement');
+    } catch (err) {
+      console.error('Dashboard superviseur:', err);
+      if (!err.response) {
+        setError('Serveur inaccessible — vérifiez la connexion réseau');
+      } else if (err.response.status === 401) {
+        setError('Session expirée — reconnectez-vous');
+      } else if (err.response.status === 403) {
+        setError('Accès non autorisé');
+      } else {
+        setError(`Erreur ${err.response.status} : ${err.response.data?.error || 'Erreur serveur'}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -78,7 +65,12 @@ export default function SupervisorDashboard() {
   }, [fetchDashboard]);
 
   if (loading) return <div className="sv-center sv-muted">Chargement…</div>;
-  if (error)   return <div className="sv-center sv-danger">{error}</div>;
+  if (error) return (
+    <div className="sv-center" style={{ flexDirection: 'column', gap: '1rem' }}>
+      <div className="sv-danger">{error}</div>
+      <button className="sv-btn-primary" onClick={fetchDashboard}>Réessayer</button>
+    </div>
+  );
   if (!data)   return null;
 
   const { stats, statusBreakdown, smsByDay, recentChanges, irisHealth } = data;

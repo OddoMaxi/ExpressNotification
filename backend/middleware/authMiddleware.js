@@ -10,8 +10,7 @@ function authenticateApi(req, res, next) {
     return next();
   }
 
-  const authHeader = req.headers.authorization || '';
-  const token = authHeader.replace('Bearer ', '').trim();
+  const token = req.cookies?.token || req.headers.authorization?.replace('Bearer ', '').trim();
 
   if (!token) {
     return res.status(401).json({ error: 'Token manquant' });

@@ -7,6 +7,12 @@ const { getQuery } = require('../database');
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) throw new Error('JWT_SECRET est requis dans les variables d\'environnement');
 const JWT_EXPIRES = '12h';
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict',
+  maxAge: 12 * 60 * 60 * 1000
+};
 
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
@@ -36,19 +42,20 @@ router.post('/login', async (req, res) => {
       { expiresIn: JWT_EXPIRES }
     );
 
+    res.cookie('token', token, COOKIE_OPTIONS);
     return res.json({
       success: true,
-      token,
       user: { id: user.id, username: user.username, role: user.role, nom: user.nom, prenom: user.prenom }
     });
   } catch (err) {
-    return res.status(500).json({ success: false, error: err.message });
+    console.error('Erreur login:', err.message);
+    return res.status(500).json({ success: false, error: 'Erreur interne du serveur' });
   }
 });
 
 router.get('/check', (req, res) => {
-  const authHeader = req.headers.authorization || '';
-  const token = authHeader.replace('Bearer ', '').trim();
+  const token = req.cookies?.token;
+  if (!token) return res.status(401).json({ success: false, error: 'Non autorisé' });
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
@@ -56,6 +63,11 @@ router.get('/check', (req, res) => {
   } catch {
     return res.status(401).json({ success: false, error: 'Non autorisé' });
   }
+});
+
+router.post('/logout', (req, res) => {
+  res.clearCookie('token', { httpOnly: true, sameSite: 'strict', secure: process.env.NODE_ENV === 'production' });
+  res.json({ success: true });
 });
 
 module.exports = router;

@@ -7,18 +7,19 @@ export function login(username, password) {
   return apiClient.post('/auth/login', { username, password });
 }
 
-export function logout() {
+export async function logout() {
+  try { await apiClient.post('/auth/logout'); } catch {}
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
+  delete apiClient.defaults.headers.common.Authorization;
 }
 
 export function saveSession(token, user) {
-  localStorage.setItem(TOKEN_KEY, token);
+  if (token) {
+    localStorage.setItem(TOKEN_KEY, token);
+    apiClient.defaults.headers.common.Authorization = `Bearer ${token}`;
+  }
   localStorage.setItem(USER_KEY, JSON.stringify(user));
-}
-
-export function getToken() {
-  return localStorage.getItem(TOKEN_KEY);
 }
 
 export function getUser() {
@@ -30,20 +31,19 @@ export function getRole() {
   return getUser()?.role || null;
 }
 
-export function isAuthenticated() {
-  return Boolean(getToken());
+export async function restoreAuth() {
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (token) {
+    apiClient.defaults.headers.common.Authorization = `Bearer ${token}`;
+    return true;
+  }
+  // Fallback : vérifier via cookie (nouveau serveur)
+  try {
+    const res = await apiClient.get('/auth/check');
+    if (res.data?.success) {
+      saveSession(null, res.data.user);
+      return true;
+    }
+  } catch {}
+  return false;
 }
-
-export function setAuthHeader(token) {
-  if (token) apiClient.defaults.headers.common.Authorization = `Bearer ${token}`;
-  else delete apiClient.defaults.headers.common.Authorization;
-}
-
-export function restoreAuth() {
-  const token = getToken();
-  setAuthHeader(token);
-  return !!token;
-}
-
-// Anciennes fonctions conservées pour compatibilité
-export function saveToken(token) { localStorage.setItem(TOKEN_KEY, token); }

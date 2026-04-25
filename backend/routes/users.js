@@ -15,7 +15,8 @@ router.get('/', async (req, res) => {
     );
     res.json({ success: true, users });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Erreur liste users:', err.message);
+    res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 });
 
@@ -44,7 +45,8 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({ success: true, id: result.lastID });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Erreur création user:', err.message);
+    res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 });
 
@@ -77,7 +79,8 @@ router.put('/:id', async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Erreur modification user:', err.message);
+    res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 });
 
@@ -91,7 +94,8 @@ router.delete('/:id', async (req, res) => {
     if (result.changes === 0) return res.status(404).json({ error: 'Utilisateur non trouvé' });
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Erreur suppression user:', err.message);
+    res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 });
 

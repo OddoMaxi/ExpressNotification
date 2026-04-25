@@ -1,30 +1,12 @@
 import React, { useState } from 'react';
 import apiClient from '../services/api';
 import './StatusVerification.css';
+import { STATUS_CONFIG, STATUS_ORDER, formatDate } from '../constants';
 
 const IRIS_STATUSES = [
   { value: '', label: 'Tous les statuts' },
-  { value: 'Pending Final Approval',  label: 'En attente approbation' },
-  { value: 'Final Approval Passed',   label: 'Approuvé' },
-  { value: 'Final Approval Rejected', label: 'Rejeté' },
-  { value: 'Production Completed',    label: 'Passeport prêt' },
+  ...STATUS_ORDER.filter(s => s !== 'néant').map(s => ({ value: s, label: STATUS_CONFIG[s].label }))
 ];
-
-const STATUS_CONFIG = {
-  'néant':                   { label: 'Non traité',             color: '#6b7280', bg: '#f3f4f6', icon: '⏸' },
-  'Pending Final Approval':  { label: 'En attente approbation', color: '#d97706', bg: '#fffbeb', icon: '⏳' },
-  'Final Approval Passed':   { label: 'Approuvé',               color: '#059669', bg: '#ecfdf5', icon: '✅' },
-  'Final Approval Rejected': { label: 'Rejeté',                 color: '#dc2626', bg: '#fef2f2', icon: '❌' },
-  'Production Completed':    { label: 'Passeport prêt',         color: '#2563eb', bg: '#eff6ff', icon: '🎉' },
-};
-
-function formatDate(dt) {
-  if (!dt) return '—';
-  return new Date(dt).toLocaleString('fr-FR', {
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit'
-  });
-}
 
 function getDefaultDates() {
   const end = new Date();

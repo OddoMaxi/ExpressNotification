@@ -16,8 +16,12 @@ router.get('/dashboard', async (req, res) => {
         SELECT d.id, d.reference_recu, d.nom, d.prenom, d.telephone,
                d.service_type, d.ticket_number, d.statut_actuel,
                d.sms_envoye, d.derniere_verification, d.date_enregistrement,
-               (SELECT COUNT(*) FROM notifications_sms n WHERE n.demandeur_id = d.id) as nb_sms
+               COUNT(n.id) AS nb_sms
         FROM demandeurs d
+        LEFT JOIN notifications_sms n ON n.demandeur_id = d.id
+        GROUP BY d.id, d.reference_recu, d.nom, d.prenom, d.telephone,
+                 d.service_type, d.ticket_number, d.statut_actuel,
+                 d.sms_envoye, d.derniere_verification, d.date_enregistrement
         ORDER BY d.date_enregistrement DESC
       `),
       allQuery(`

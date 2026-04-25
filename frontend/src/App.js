@@ -15,9 +15,10 @@ function App() {
   const [role, setRole] = useState(null);
 
   useEffect(() => {
-    const ok = restoreAuth();
-    setAuthenticated(ok);
-    if (ok) setRole(getRole());
+    restoreAuth().then(ok => {
+      setAuthenticated(ok);
+      if (ok) setRole(getRole());
+    });
   }, []);
 
   const handleLogin = () => {
@@ -25,8 +26,8 @@ function App() {
     setRole(getRole());
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     setAuthenticated(false);
     setRole(null);
   };

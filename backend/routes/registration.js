@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
-const { runQuery, getQuery, allQuery } = require('../database');
+const { runQuery, getQuery, allQuery, withTransaction } = require('../database');
 const { manuallyCheckAndSendSMS } = require('../services/cronService');
 const { sendSMS } = require('../services/smsService');
+const { WELCOME_MESSAGE } = require('../services/irisService');
 
 /**
  * Route: POST /api/registration
@@ -18,7 +19,7 @@ router.post(
     body('telephone')
       .notEmpty().withMessage('Le téléphone est requis')
       .matches(/^(\+224|00224)?[0-9]{9}$/).withMessage('Téléphone invalide, format +224XXXXXXXXX'),
-    body('email').optional().isEmail().withMessage('Email invalide'),
+    body('email').optional({ checkFalsy: true }).isEmail().withMessage('Email invalide'),
     body('service_type').notEmpty().withMessage('Le type de service est requis')
   ],
   async (req, res) => {
@@ -65,7 +66,7 @@ router.post(
       console.log(`✓ Demandeur enregistré: ${nom} ${prenom} (ID: ${result.lastID})`);
 
       // Envoyer le SMS d'accueil automatiquement
-      const welcomeMessage = `Bonjour cher client, votre demande de passport est en cours de traitement. Merci pour la confiance !`;
+      const welcomeMessage = WELCOME_MESSAGE;
       
       try {
         console.log(`📱 Envoi du SMS d'accueil au ${telephone}`);
@@ -141,12 +142,17 @@ router.get('/:id', async (req, res) => {
  */
 router.get('/', async (req, res) => {
   try {
-    const demandeurs = await allQuery('SELECT * FROM demandeurs ORDER BY date_enregistrement DESC');
+    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 100));
+    const offset = (page - 1) * limit;
 
-    res.json({
-      total: demandeurs.length,
-      demandeurs
-    });
+    const [countRow, demandeurs] = await Promise.all([
+      getQuery('SELECT COUNT(*) AS count FROM demandeurs', []),
+      allQuery('SELECT * FROM demandeurs ORDER BY date_enregistrement DESC LIMIT ? OFFSET ?', [limit, offset])
+    ]);
+
+    const total = parseInt(countRow.count);
+    res.json({ total, page, limit, pages: Math.ceil(total / limit), demandeurs });
   } catch (error) {
     console.error('Erreur lors de la récupération de la liste:', error);
     res.status(500).json({ error: 'Erreur interne du serveur' });
@@ -157,34 +163,70 @@ router.get('/', async (req, res) => {
  * Route: PUT /api/registration/:id
  * Mettre à jour les détails d'un demandeur
  */
-router.put('/:id', async (req, res) => {
-  try {
-    const { nom, prenom, telephone, email } = req.body;
-
-    const query = `
-      UPDATE demandeurs
-      SET nom = ?, prenom = ?, telephone = ?, email = ?, date_mise_a_jour = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `;
-
-    const result = await runQuery(query, [
-      nom,
-      prenom,
-      telephone,
-      email || null,
-      req.params.id
-    ]);
-
-    if (result.changes === 0) {
-      return res.status(404).json({ error: 'Demandeur non trouvé' });
+router.put(
+  '/:id',
+  [
+    body('nom').notEmpty().withMessage('Le nom est requis'),
+    body('prenom').notEmpty().withMessage('Le prénom est requis'),
+    body('telephone')
+      .notEmpty().withMessage('Le téléphone est requis')
+      .matches(/^(\+224|00224)?[0-9]{9}$/).withMessage('Téléphone invalide, format +224XXXXXXXXX'),
+    body('email').optional({ checkFalsy: true }).isEmail().withMessage('Email invalide')
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'Validation échouée', errors: errors.array() });
     }
 
-    res.json({
-      success: true,
-      message: 'Demandeur mis à jour avec succès'
+    try {
+      const { nom, prenom, telephone, email, ticket_number } = req.body;
+
+      const query = `
+        UPDATE demandeurs
+        SET nom = ?, prenom = ?, telephone = ?, email = ?, ticket_number = ?, date_mise_a_jour = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `;
+
+      const result = await runQuery(query, [
+        nom,
+        prenom,
+        telephone,
+        email || null,
+        ticket_number || null,
+        req.params.id
+      ]);
+
+      if (result.changes === 0) {
+        return res.status(404).json({ error: 'Demandeur non trouvé' });
+      }
+
+      res.json({ success: true, message: 'Demandeur mis à jour avec succès' });
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour:', error);
+      res.status(500).json({ error: 'Erreur interne du serveur' });
+    }
+  }
+);
+
+/**
+ * Route: DELETE /api/registration/:id
+ * Supprimer un demandeur
+ */
+router.delete('/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    let deleted = false;
+    await withTransaction(async (tx) => {
+      await tx.run('DELETE FROM notifications_sms WHERE demandeur_id = ?', [id]);
+      const result = await tx.run('DELETE FROM demandeurs WHERE id = ?', [id]);
+      deleted = result.changes > 0;
     });
+    if (!deleted) return res.status(404).json({ error: 'Demandeur non trouvé' });
+    console.log(`✓ Demandeur supprimé (ID: ${id})`);
+    res.json({ success: true, message: 'Demandeur supprimé avec succès' });
   } catch (error) {
-    console.error('Erreur lors de la mise à jour:', error);
+    console.error('Erreur lors de la suppression:', error);
     res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 });

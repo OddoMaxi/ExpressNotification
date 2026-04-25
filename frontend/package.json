@@ -20,6 +20,7 @@
       "react-app"
     ]
   },
+  "proxy": "http://102.206.73.61",
   "browserslist": {
     "production": [
       ">0.2%",

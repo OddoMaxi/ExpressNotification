@@ -1,4 +1,31 @@
 const axios = require('axios');
+const { runQuery } = require('../database');
+
+const WELCOME_MESSAGE = `Bonjour cher client, votre demande de passeport est en cours de traitement. Merci pour la confiance !`;
+
+async function logAudit(action, demandeurId, details) {
+  try {
+    await runQuery(
+      'INSERT INTO audit_log (action, demandeur_id, details) VALUES (?, ?, ?)',
+      [action, demandeurId || null, details ? JSON.stringify(details) : null]
+    );
+  } catch (err) {
+    console.error('Audit log error:', err.message);
+  }
+}
+
+async function withRetry(fn, maxAttempts = 3) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt === maxAttempts) throw err;
+      const delay = 1000 * attempt;
+      console.log(`  ⚠️ Tentative ${attempt}/${maxAttempts} échouée (${err.message}) — retry dans ${delay}ms`);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+}
 
 /**
  * Service pour communiquer avec l'API Iris - Guinea GCPIS MOFA
@@ -74,53 +101,35 @@ async function generateToken() {
  * @returns {Promise<object>} - Statut et détails de la demande
  */
 async function checkStatus(ticketNumber) {
+  console.log(`📤 Vérification du statut pour ticket: ${ticketNumber}`);
   try {
-    console.log(`📤 Vérification du statut pour ticket: ${ticketNumber}`);
+    return await withRetry(async () => {
+      const token = await generateToken();
 
-    const token = await generateToken();
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setMonth(startDate.getMonth() - 3);
+      const fmt = (d) => d.toISOString().split('T')[0];
 
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setMonth(startDate.getMonth() - 3);
+      const response = await irisApi.post(
+        '/api/cig/ListNotifyApplication',
+        { TicketNumber: ticketNumber, StartSubmissionDate: fmt(startDate), EndSubmissionDate: fmt(endDate), ApplicationStatus: '' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-    const formatDate = (date) => date.toISOString().split('T')[0];
-
-    const response = await irisApi.post('/api/cig/ListNotifyApplication',
-      {
-        TicketNumber: ticketNumber,
-        StartSubmissionDate: formatDate(startDate),
-        EndSubmissionDate: formatDate(endDate),
-        ApplicationStatus: ""
-      },
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      }
-    );
-
-    if (response.status === 200 && response.data) {
-      console.log(`✓ Statut reçu de l'API Iris`);
+      if (response.status !== 200 || !response.data) throw new Error('Réponse Iris invalide');
 
       const records = response.data.data || [];
-      const statusValue = records.length > 0 ? records[0].status : 'not_found';
-
       return {
         success: true,
-        statut: statusValue,
-        details: records.length > 0 ? records[0] : null,
+        statut: records.length > 0 ? records[0].status : 'not_found',
+        details: records[0] || null,
         raw: response.data
       };
-    } else {
-      throw new Error('Réponse Iris invalide');
-    }
+    });
   } catch (error) {
-    console.error('❌ Erreur lors de l\'appel API Iris:', error.message);
-    return {
-      success: false,
-      error: error.message,
-      statut: 'erreur_api'
-    };
+    console.error('❌ Erreur API Iris (3 tentatives épuisées):', error.message);
+    return { success: false, error: error.message, statut: 'erreur_api' };
   }
 }
 
@@ -195,5 +204,7 @@ module.exports = {
   searchApplications,
   mapStatusToMessage,
   shouldSendSMS,
-  checkIrisHealth
+  checkIrisHealth,
+  logAudit,
+  WELCOME_MESSAGE
 };

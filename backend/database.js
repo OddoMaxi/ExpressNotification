@@ -81,6 +81,11 @@ async function initializeDatabase() {
     `);
     console.log('✓ Table audit_log prête');
 
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_demandeurs_ticket
+      ON demandeurs(ticket_number) WHERE ticket_number IS NOT NULL
+    `);
+
     // Table des utilisateurs
     await client.query(`
       CREATE TABLE IF NOT EXISTS users (
@@ -153,4 +158,22 @@ function allQuery(query, params = []) {
   return pool.query(sql, params).then(result => result.rows);
 }
 
-module.exports = { pool, initializeDatabase, runQuery, getQuery, allQuery };
+async function withTransaction(fn) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await fn({
+      run: (q, p = []) => client.query(toPostgresParams(q), p).then(r => ({ lastID: r.rows[0]?.id ?? null, changes: r.rowCount })),
+      get: (q, p = []) => client.query(toPostgresParams(q), p).then(r => r.rows[0] ?? null),
+    });
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+module.exports = { pool, initializeDatabase, runQuery, getQuery, allQuery, withTransaction };

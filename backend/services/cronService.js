@@ -1,6 +1,6 @@
 const cron = require('node-cron');
-const { allQuery, getQuery, runQuery } = require('../database');
-const { checkStatus, mapStatusToMessage, shouldSendSMS } = require('./irisService');
+const { allQuery, getQuery, runQuery, withTransaction } = require('../database');
+const { checkStatus, mapStatusToMessage, shouldSendSMS, logAudit, WELCOME_MESSAGE } = require('./irisService');
 const { sendSMS } = require('./smsService');
 
 let cronJob = null;
@@ -41,8 +41,13 @@ function stopBackgroundService() {
  */
 async function processAllApplications() {
   try {
-    // Récupérer tous les demandeurs
-    const demandeurs = await allQuery('SELECT * FROM demandeurs ORDER BY id');
+    // Récupérer uniquement les demandeurs dont le traitement n'est pas terminé
+    // On exclut ceux dont le statut final est atteint ET qui ont déjà reçu leur SMS
+    const demandeurs = await allQuery(`
+      SELECT * FROM demandeurs
+      WHERE NOT (statut_actuel IN ('Production Completed', 'Final Approval Rejected') AND sms_envoye = 1)
+      ORDER BY id
+    `);
 
     if (!demandeurs || demandeurs.length === 0) {
       console.log('ℹ️  Aucun demandeur à vérifier');
@@ -79,18 +84,9 @@ async function processAllApplications() {
         if (oldStatus !== newStatus) {
           console.log(`  📊 CHANGEMENT DÉTECTÉ: ${oldStatus} → ${newStatus}`);
 
-          // Mettre à jour le statut dans la BD
-          await runQuery(
-            `UPDATE demandeurs
-             SET statut_actuel = ?,
-                 derniere_verification = CURRENT_TIMESTAMP,
-                 date_mise_a_jour = CURRENT_TIMESTAMP
-             WHERE id = ?`,
-            [newStatus, demandeur.id]
-          );
-
-          // SMS uniquement pour Rejeté et Passeport prêt
           if (shouldSendSMS(newStatus)) {
+            // Envoyer le SMS AVANT de mettre à jour le statut en BD
+            // Si le SMS échoue, on ne met pas à jour le statut → le cron retentera au prochain cycle
             const messageData = mapStatusToMessage(newStatus);
             console.log(`  📱 Envoi du SMS au ${demandeur.telephone}`);
 
@@ -103,29 +99,34 @@ async function processAllApplications() {
 
             if (smsResult.success) {
               console.log(`  ✅ SMS envoyé`);
-              await runQuery(
-                `UPDATE demandeurs SET sms_envoye = 1 WHERE id = ?`,
-                [demandeur.id]
-              );
+              await withTransaction(async (tx) => {
+                await tx.run(
+                  `UPDATE demandeurs SET statut_actuel = ?, sms_envoye = 1, derniere_verification = CURRENT_TIMESTAMP, date_mise_a_jour = CURRENT_TIMESTAMP WHERE id = ?`,
+                  [newStatus, demandeur.id]
+                );
+              });
+              await logAudit('SMS_ENVOYE', demandeur.id, { statut: newStatus, telephone: demandeur.telephone });
             } else {
-              console.log(`  ❌ Erreur envoi SMS`);
+              console.log(`  ❌ Erreur envoi SMS — statut non mis à jour, nouvelle tentative au prochain cycle`);
+              await logAudit('SMS_ECHEC', demandeur.id, { statut: newStatus, error: smsResult.error });
             }
           } else {
+            // Pas de SMS pour ce statut, on met juste à jour le statut
             console.log(`  ℹ️  Statut ${newStatus} — pas de SMS automatique`);
             await runQuery(
-              `UPDATE demandeurs SET derniere_verification = CURRENT_TIMESTAMP WHERE id = ?`,
-              [demandeur.id]
+              `UPDATE demandeurs
+               SET statut_actuel = ?,
+                   derniere_verification = CURRENT_TIMESTAMP,
+                   date_mise_a_jour = CURRENT_TIMESTAMP
+               WHERE id = ?`,
+              [newStatus, demandeur.id]
             );
           }
         } else {
           // Aucun changement
           console.log(`  ✓ Statut inchangé (${newStatus})`);
-
-          // Mettre à jour juste la date de vérification
           await runQuery(
-            `UPDATE demandeurs 
-             SET derniere_verification = CURRENT_TIMESTAMP
-             WHERE id = ?`,
+            `UPDATE demandeurs SET derniere_verification = CURRENT_TIMESTAMP WHERE id = ?`,
             [demandeur.id]
           );
         }
@@ -165,8 +166,8 @@ async function manuallyCheckAndSendSMS(demandeurId) {
     console.log(`  Statut actuel normalisé: ${currentStatus}`);
 
     if (currentStatus === 'néant') {
-      const personalizedMessage = `Bonjour cher client, votre demande de passport est en cours de traitement. Merci pour la confiance !`;
-      console.log(`  Envoi du message court pour statut néant: ${personalizedMessage}`);
+      const personalizedMessage = WELCOME_MESSAGE;
+      console.log(`  Envoi du message de bienvenue`);
 
       const smsResult = await sendSMS({
         telephone: demandeur.telephone,
@@ -216,9 +217,7 @@ async function manuallyCheckAndSendSMS(demandeurId) {
 
     // Générer le message (SMS uniquement pour Rejeté et Passeport prêt)
     const messageData = mapStatusToMessage(irisStatus);
-    const personalizedMessage = messageData
-      ? messageData.message
-      : `Bonjour cher client, votre demande de passport est en cours de traitement. Merci pour la confiance !`;
+    const personalizedMessage = messageData ? messageData.message : WELCOME_MESSAGE;
 
     // Envoyer le SMS
     const smsResult = await sendSMS({
