@@ -45,6 +45,7 @@ router.post('/login', async (req, res) => {
     res.cookie('token', token, COOKIE_OPTIONS);
     return res.json({
       success: true,
+      token,
       user: { id: user.id, username: user.username, role: user.role, nom: user.nom, prenom: user.prenom }
     });
   } catch (err) {
@@ -54,7 +55,7 @@ router.post('/login', async (req, res) => {
 });
 
 router.get('/check', (req, res) => {
-  const token = req.cookies?.token;
+  const token = req.cookies?.token || req.headers.authorization?.replace('Bearer ', '').trim();
   if (!token) return res.status(401).json({ success: false, error: 'Non autorisé' });
 
   try {
