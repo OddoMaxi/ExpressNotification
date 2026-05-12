@@ -282,6 +282,7 @@ export default function StatusVerification() {
                 <table className="sv-table">
                   <thead>
                     <tr>
+                      <th>ID Demande</th>
                       <th>Ticket</th>
                       <th>Nom</th>
                       <th>Prénom</th>
@@ -294,6 +295,7 @@ export default function StatusVerification() {
                       const cfg = STATUS_CONFIG[item.status] || { label: item.status, color: '#6b7280', bg: '#f3f4f6', icon: '' };
                       return (
                         <tr key={i}>
+                          <td><span className="sv-mono">{item.applicationId}</span></td>
                           <td><span className="sv-mono">{item.ticketNumber}</span></td>
                           <td>{item.lastName}</td>
                           <td>{item.firstName}</td>
