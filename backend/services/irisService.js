@@ -166,7 +166,10 @@ function mapStatusToMessage(irisStatus) {
 async function checkIrisHealth() {
   const start = Date.now();
   try {
-    await generateToken();
+    const deadline = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 4000)
+    );
+    await Promise.race([generateToken(), deadline]);
     return { online: true, latencyMs: Date.now() - start };
   } catch (error) {
     return { online: false, latencyMs: Date.now() - start, error: error.message };

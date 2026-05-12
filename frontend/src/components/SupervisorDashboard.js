@@ -165,6 +165,9 @@ export default function SupervisorDashboard() {
   const metricPending   = irisLoaded
     ? Object.values(branchData.branches).reduce((s, b) => s + b.pending, 0)
     : (statusBreakdown.find(r => r.statut_actuel === 'Pending Final Approval')?.count || 0);
+  const metricApproved  = irisLoaded
+    ? Object.values(branchData.branches).reduce((s, b) => s + b.approved, 0)
+    : (statusBreakdown.find(r => r.statut_actuel === 'Final Approval Passed')?.count || 0);
 
   // Libellé de la période active
   const activeQ = quarters.find(q => q.start === branchStart && q.end === branchEnd);
@@ -243,9 +246,9 @@ export default function SupervisorDashboard() {
           <div className="sv-mc-lbl">En attente approbation</div>
         </div>
         <div className="sv-metric-card sv-teal">
-          <span className="sv-mc-icon">🎫</span>
-          <div className="sv-mc-num">{stats.sansTicket}</div>
-          <div className="sv-mc-lbl">Sans N° ticket</div>
+          <span className="sv-mc-icon">✓</span>
+          <div className="sv-mc-num">{metricApproved.toLocaleString('fr-FR')}</div>
+          <div className="sv-mc-lbl">Approuvés</div>
         </div>
       </div>
 

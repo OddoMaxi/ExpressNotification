@@ -1,11 +1,11 @@
 import axios from 'axios';
 
 // Créer une instance axios avec la configuration de base
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const apiClient = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: 20000,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
