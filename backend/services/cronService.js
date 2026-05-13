@@ -58,16 +58,17 @@ async function processAllApplications() {
 
     for (const demandeur of demandeurs) {
       try {
-        // Vérifier si on a un ticket_number
-        if (!demandeur.ticket_number) {
-          console.log(`⏭️  ${demandeur.nom} ${demandeur.prenom} - Pas de numéro de ticket`);
+        // Utiliser reference_recu comme référence ticket IRIS (ticket_number est optionnel)
+        const ticketRef = demandeur.ticket_number || demandeur.reference_recu;
+        if (!ticketRef) {
+          console.log(`⏭️  ${demandeur.nom} ${demandeur.prenom} - Pas de référence ticket`);
           continue;
         }
 
-        console.log(`\n🔍 Vérification: ${demandeur.nom} ${demandeur.prenom}`);
+        console.log(`\n🔍 Vérification: ${demandeur.nom} ${demandeur.prenom} (ref: ${ticketRef})`);
 
         // Appeler l'API Iris pour obtenir le statut actuel
-        const irisResponse = await checkStatus(demandeur.ticket_number);
+        const irisResponse = await checkStatus(ticketRef);
 
         if (!irisResponse.success) {
           console.log(`  ⚠️  Erreur API Iris`);
