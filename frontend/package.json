@@ -20,7 +20,7 @@
       "react-app"
     ]
   },
-  "proxy": "http://102.206.73.61",
+  "proxy": "http://localhost:5000",
   "browserslist": {
     "production": [
       ">0.2%",
