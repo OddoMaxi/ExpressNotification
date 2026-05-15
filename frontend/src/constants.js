@@ -15,6 +15,7 @@ export const BRANCHES = {
   '320': { name: 'Branche 1 — Coleah',    type: 'centre' },
   '331': { name: 'Branche 2 — Nongo',     type: 'centre' },
   '332': { name: 'Branche 3 — Matoto',    type: 'centre' },
+  '396': { name: 'Centre Express Kipé',   type: 'centre' },
   // ── Ambassades ──────────────────────────────────────────
   '323': { name: 'Embassy 3 — Rabat, Maroc',             type: 'ambassade' },
   '324': { name: 'Embassy 4 — Luanda, Angola',           type: 'ambassade' },

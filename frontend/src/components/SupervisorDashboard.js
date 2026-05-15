@@ -343,7 +343,7 @@ export default function SupervisorDashboard() {
 
           const filtered = allRows.filter(r => {
             const matchType = !branchTypeFilter || r.type === branchTypeFilter;
-            const matchName = !branchFilter || r.name.toLowerCase().includes(branchFilter.toLowerCase()) || r.id.includes(branchFilter);
+            const matchName = !branchFilter || r.id === branchFilter;
             return matchType && matchName;
           });
 
@@ -358,8 +358,14 @@ export default function SupervisorDashboard() {
               </div>
 
               <div className="sv-branch-filters">
-                <input className="sv-search-input" placeholder="Rechercher une branche…"
-                  value={branchFilter} onChange={e => setBranchFilter(e.target.value)} />
+                <select className="sv-date-input" value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
+                  <option value="">Toutes les branches ({allRows.length})</option>
+                  {allRows.map(r => (
+                    <option key={r.id} value={r.id}>
+                      {r.id} — {r.name} ({r.total.toLocaleString('fr-FR')})
+                    </option>
+                  ))}
+                </select>
                 <select className="sv-date-input" value={branchTypeFilter} onChange={e => setBranchTypeFilter(e.target.value)}>
                   <option value="">Tous les types</option>
                   {Object.entries(BRANCH_TYPE_CONFIG).map(([k, v]) => (
