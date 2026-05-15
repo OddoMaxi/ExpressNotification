@@ -63,6 +63,7 @@ export default function SupervisorDashboard() {
   const [branchLoading, setBranchLoading]       = useState(false);
   const [branchError, setBranchError]           = useState('');
   const [branchFilter, setBranchFilter]         = useState('');
+  const [branchSearch, setBranchSearch]         = useState('');
   const [branchTypeFilter, setBranchTypeFilter] = useState('');
 
   const fetchDashboard = useCallback(async () => {
@@ -343,8 +344,9 @@ export default function SupervisorDashboard() {
 
           const filtered = allRows.filter(r => {
             const matchType = !branchTypeFilter || r.type === branchTypeFilter;
-            const matchName = !branchFilter || r.id === branchFilter;
-            return matchType && matchName;
+            const matchSelect = !branchFilter || r.id === branchFilter;
+            const matchSearch = !branchSearch || r.name.toLowerCase().includes(branchSearch.toLowerCase()) || r.id.includes(branchSearch);
+            return matchType && matchSelect && matchSearch;
           });
 
           return (
@@ -358,6 +360,8 @@ export default function SupervisorDashboard() {
               </div>
 
               <div className="sv-branch-filters">
+                <input className="sv-search-input" placeholder="Rechercher une branche…"
+                  value={branchSearch} onChange={e => setBranchSearch(e.target.value)} />
                 <select className="sv-date-input" value={branchFilter} onChange={e => setBranchFilter(e.target.value)}>
                   <option value="">Toutes les branches ({allRows.length})</option>
                   {allRows.map(r => (
