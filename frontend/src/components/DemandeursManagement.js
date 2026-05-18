@@ -195,6 +195,9 @@ function DemandeursManagement() {
           value={filterDate}
           onChange={e => setFilterDate(e.target.value)}
         />
+        <span style={{ marginLeft: '10px', fontWeight: 'bold', color: '#4b5563' }}>
+          {filteredDemandeurs.length} enregistrement{filteredDemandeurs.length !== 1 ? 's' : ''}
+        </span>
         {filterDate && (
           <button className="btn-reload" style={{ marginLeft: '8px' }} onClick={() => setFilterDate('')}>
             ✕ Effacer
@@ -218,6 +221,7 @@ function DemandeursManagement() {
                 <th>Service</th>
                 <th>Ticket</th>
                 <th>Statut</th>
+                <th>Enregistré le</th>
                 <th>Dernière Vérif.</th>
                 <th>Actions</th>
               </tr>
@@ -244,6 +248,11 @@ function DemandeursManagement() {
                     }}>
                       {normalizeStatus(demandeur.statut_actuel)}
                     </span>
+                  </td>
+                  <td className="date-cell">
+                    {demandeur.date_enregistrement
+                      ? new Date(demandeur.date_enregistrement).toLocaleString('fr-FR')
+                      : '—'}
                   </td>
                   <td className="date-cell">
                     {demandeur.derniere_verification
