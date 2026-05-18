@@ -12,6 +12,7 @@ function DemandeursManagement() {
   const [successMessage, setSuccessMessage] = useState('');
   const [sendingId, setSendingId]         = useState(null);
   const [filterStatus, setFilterStatus]   = useState('all');
+  const [filterDate, setFilterDate]       = useState('');
 
   // Édition
   const [editDemandeur, setEditDemandeur] = useState(null);
@@ -142,9 +143,11 @@ function DemandeursManagement() {
     return colors[normalizeStatus(status)] || '#17a2b8';
   };
 
-  const filteredDemandeurs = filterStatus === 'all'
-    ? demandeurs
-    : demandeurs.filter(d => normalizeStatus(d.statut_actuel) === filterStatus);
+  const filteredDemandeurs = demandeurs.filter(d => {
+    const matchStatus = filterStatus === 'all' || normalizeStatus(d.statut_actuel) === filterStatus;
+    const matchDate = !filterDate || (d.date_enregistrement && d.date_enregistrement.startsWith(filterDate));
+    return matchStatus && matchDate;
+  });
 
   const uniqueStatuts = [...new Set(demandeurs.map(d => normalizeStatus(d.statut_actuel)))];
 
@@ -185,6 +188,18 @@ function DemandeursManagement() {
             </option>
           ))}
         </select>
+        <label style={{ marginLeft: '16px' }}>Filtrer par jour:</label>
+        <input
+          type="date"
+          className="filter-select"
+          value={filterDate}
+          onChange={e => setFilterDate(e.target.value)}
+        />
+        {filterDate && (
+          <button className="btn-reload" style={{ marginLeft: '8px' }} onClick={() => setFilterDate('')}>
+            ✕ Effacer
+          </button>
+        )}
       </div>
 
       {loading ? (
