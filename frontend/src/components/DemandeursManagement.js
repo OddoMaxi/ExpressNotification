@@ -13,6 +13,7 @@ function DemandeursManagement() {
   const [sendingId, setSendingId]         = useState(null);
   const [filterStatus, setFilterStatus]   = useState('all');
   const [filterDate, setFilterDate]       = useState('');
+  const [filterService, setFilterService] = useState('all');
 
   // Édition
   const [editDemandeur, setEditDemandeur] = useState(null);
@@ -144,12 +145,14 @@ function DemandeursManagement() {
   };
 
   const filteredDemandeurs = demandeurs.filter(d => {
-    const matchStatus = filterStatus === 'all' || normalizeStatus(d.statut_actuel) === filterStatus;
-    const matchDate = !filterDate || (d.date_enregistrement && d.date_enregistrement.startsWith(filterDate));
-    return matchStatus && matchDate;
+    const matchStatus  = filterStatus === 'all' || normalizeStatus(d.statut_actuel) === filterStatus;
+    const matchDate    = !filterDate || (d.date_enregistrement && d.date_enregistrement.startsWith(filterDate));
+    const matchService = filterService === 'all' || (d.service_type || 'Express 72h') === filterService;
+    return matchStatus && matchDate && matchService;
   });
 
-  const uniqueStatuts = [...new Set(demandeurs.map(d => normalizeStatus(d.statut_actuel)))];
+  const uniqueStatuts   = [...new Set(demandeurs.map(d => normalizeStatus(d.statut_actuel)))];
+  const uniqueServices  = [...new Set(demandeurs.map(d => d.service_type || 'Express 72h'))];
 
   return (
     <div className="demandeurs-management-container">
@@ -185,6 +188,15 @@ function DemandeursManagement() {
           {uniqueStatuts.map(status => (
             <option key={status} value={status}>
               {status} ({demandeurs.filter(d => normalizeStatus(d.statut_actuel) === status).length})
+            </option>
+          ))}
+        </select>
+        <label style={{ marginLeft: '16px' }}>Filtrer par service:</label>
+        <select value={filterService} onChange={e => setFilterService(e.target.value)} className="filter-select">
+          <option value="all">Tous</option>
+          {uniqueServices.map(s => (
+            <option key={s} value={s}>
+              {s} ({demandeurs.filter(d => (d.service_type || 'Express 72h') === s).length})
             </option>
           ))}
         </select>
