@@ -219,7 +219,6 @@ function DemandeursManagement() {
                 <th>Nom Complet</th>
                 <th>Téléphone</th>
                 <th>Service</th>
-                <th>Ticket</th>
                 <th>Statut</th>
                 <th>Enregistré le</th>
                 <th>Dernière Vérif.</th>
@@ -236,11 +235,6 @@ function DemandeursManagement() {
                   </td>
                   <td className="phone-cell">{demandeur.telephone}</td>
                   <td>{demandeur.service_type || 'Express 72h'}</td>
-                  <td className="mono" title={demandeur.ticket_number || 'Non fourni'}>
-                    {demandeur.ticket_number
-                      ? <span className="ticket-badge">{demandeur.ticket_number.substring(0, 12)}...</span>
-                      : <span className="no-ticket">-</span>}
-                  </td>
                   <td className="status-cell">
                     <span className="status-badge" style={{
                       backgroundColor: getStatusColor(demandeur.statut_actuel),
