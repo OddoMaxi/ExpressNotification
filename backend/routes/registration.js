@@ -263,4 +263,45 @@ router.post('/:id/send-sms', async (req, res) => {
   }
 });
 
+/**
+ * Route: POST /api/registration/:id/send-custom-sms
+ * Envoyer un SMS avec un message libre saisi par l'agent
+ */
+router.post('/:id/send-custom-sms', async (req, res) => {
+  try {
+    const demandeurId = req.params.id;
+    const { message } = req.body;
+
+    if (!message || !message.trim()) {
+      return res.status(400).json({ error: 'Le message est requis' });
+    }
+    if (message.trim().length > 500) {
+      return res.status(400).json({ error: 'Message trop long (500 caractères max)' });
+    }
+
+    const demandeur = await getQuery('SELECT * FROM demandeurs WHERE id = ?', [demandeurId]);
+    if (!demandeur) {
+      return res.status(404).json({ error: 'Demandeur introuvable' });
+    }
+
+    console.log(`\n📱 SMS personnalisé pour demandeur ID ${demandeurId} (${demandeur.telephone})`);
+
+    const result = await sendSMS({
+      telephone:   demandeur.telephone,
+      message:     message.trim(),
+      demandeurId: demandeurId,
+      statusIris:  'custom'
+    });
+
+    if (result.success) {
+      res.json({ success: true, messageId: result.messageId });
+    } else {
+      res.status(500).json({ success: false, error: result.error });
+    }
+  } catch (error) {
+    console.error('Erreur SMS personnalisé:', error);
+    res.status(500).json({ error: 'Erreur interne du serveur' });
+  }
+});
+
 module.exports = router;

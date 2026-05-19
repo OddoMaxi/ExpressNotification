@@ -25,6 +25,11 @@ function DemandeursManagement() {
   const [deleteTarget, setDeleteTarget]   = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  // SMS personnalisé
+  const [smsTarget, setSmsTarget]         = useState(null);
+  const [smsMessage, setSmsMessage]       = useState('');
+  const [smsLoading, setSmsLoading]       = useState(false);
+
   useEffect(() => {
     let mounted = true;
     const load = async () => {
@@ -127,6 +132,23 @@ function DemandeursManagement() {
       setDeleteTarget(null);
     } finally {
       setDeleteLoading(false);
+    }
+  };
+
+  // ── SMS PERSONNALISÉ ──────────────────────────────────────────────────────
+  const handleSendCustomSMS = async () => {
+    if (!smsTarget || !smsMessage.trim()) return;
+    setSmsLoading(true);
+    setError('');
+    try {
+      await registrationService.sendCustomSMS(smsTarget.id, smsMessage.trim());
+      flash(`SMS envoyé à ${smsTarget.prenom} ${smsTarget.nom}`);
+      setSmsTarget(null);
+      setSmsMessage('');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Erreur lors de l\'envoi du SMS');
+    } finally {
+      setSmsLoading(false);
     }
   };
 
@@ -277,6 +299,14 @@ function DemandeursManagement() {
                       </button>
                       <button
                         className="btn-edit"
+                        style={{ background: '#6366f1' }}
+                        onClick={() => { setSmsTarget(demandeur); setSmsMessage(''); }}
+                        title="Envoyer un SMS personnalisé"
+                      >
+                        ✉️
+                      </button>
+                      <button
+                        className="btn-edit"
                         onClick={() => openEdit(demandeur)}
                         title="Modifier"
                       >
@@ -362,6 +392,45 @@ function DemandeursManagement() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL SMS PERSONNALISÉ ── */}
+      {smsTarget && (
+        <div className="modal-overlay" onClick={() => setSmsTarget(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>SMS personnalisé — {smsTarget.prenom} {smsTarget.nom}</h3>
+              <button className="modal-close" onClick={() => setSmsTarget(null)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p style={{ color: '#6b7280', marginBottom: '8px' }}>
+                Destinataire : <strong>{smsTarget.telephone}</strong>
+              </p>
+              <textarea
+                rows={5}
+                maxLength={500}
+                placeholder="Écrivez votre message ici…"
+                value={smsMessage}
+                onChange={e => setSmsMessage(e.target.value)}
+                style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', resize: 'vertical', fontFamily: 'inherit', fontSize: '0.95rem', boxSizing: 'border-box' }}
+                autoFocus
+              />
+              <div style={{ textAlign: 'right', fontSize: '0.8rem', color: smsMessage.length > 450 ? '#ef4444' : '#9ca3af' }}>
+                {smsMessage.length}/500
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setSmsTarget(null)}>Annuler</button>
+              <button
+                className="btn-primary"
+                onClick={handleSendCustomSMS}
+                disabled={smsLoading || !smsMessage.trim()}
+              >
+                {smsLoading ? 'Envoi…' : '📱 Envoyer'}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -40,7 +40,8 @@ export const registrationService = {
   getById: (id) => apiClient.get(`/registration/${id}`),
   update: (id, data) => apiClient.put(`/registration/${id}`, data),
   delete: (id) => apiClient.delete(`/registration/${id}`),
-  sendManualSMS: (id) => apiClient.post(`/registration/${id}/send-sms`)
+  sendManualSMS: (id)          => apiClient.post(`/registration/${id}/send-sms`),
+  sendCustomSMS: (id, message) => apiClient.post(`/registration/${id}/send-custom-sms`, { message })
 };
 
 // Service de statut
