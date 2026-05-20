@@ -14,6 +14,9 @@ function DemandeursManagement() {
   const [filterStatus, setFilterStatus]   = useState('all');
   const [filterDate, setFilterDate]       = useState('');
   const [filterService, setFilterService] = useState('all');
+  const [search, setSearch]               = useState('');
+  const [page, setPage]                   = useState(1);
+  const PAGE_SIZE = 10;
 
   // Édition
   const [editDemandeur, setEditDemandeur] = useState(null);
@@ -170,8 +173,15 @@ function DemandeursManagement() {
     const matchStatus  = filterStatus === 'all' || normalizeStatus(d.statut_actuel) === filterStatus;
     const matchDate    = !filterDate || (d.date_enregistrement && d.date_enregistrement.startsWith(filterDate));
     const matchService = filterService === 'all' || (d.service_type || 'Express 72h') === filterService;
-    return matchStatus && matchDate && matchService;
+    const q = search.toLowerCase();
+    const matchSearch  = !search || d.nom.toLowerCase().includes(q) || d.prenom.toLowerCase().includes(q)
+                      || (d.telephone || '').includes(q) || (d.reference_recu || '').toLowerCase().includes(q);
+    return matchStatus && matchDate && matchService && matchSearch;
   });
+
+  const totalPages   = Math.max(1, Math.ceil(filteredDemandeurs.length / PAGE_SIZE));
+  const safePage     = Math.min(page, totalPages);
+  const pagedDemandeurs = filteredDemandeurs.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const uniqueStatuts   = [...new Set(demandeurs.map(d => normalizeStatus(d.statut_actuel)))];
   const uniqueServices  = [...new Set(demandeurs.map(d => d.service_type || 'Express 72h'))];
@@ -204,8 +214,15 @@ function DemandeursManagement() {
       {error && <div className="error-message">{error}</div>}
 
       <div className="filter-section">
-        <label>Filtrer par statut:</label>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="filter-select">
+        <input
+          className="filter-select"
+          style={{ minWidth: '220px' }}
+          placeholder="🔍 Rechercher nom, prénom, téléphone, référence…"
+          value={search}
+          onChange={e => { setSearch(e.target.value); setPage(1); }}
+        />
+        <label style={{ marginLeft: '16px' }}>Statut:</label>
+        <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }} className="filter-select">
           <option value="all">Tous</option>
           {uniqueStatuts.map(status => (
             <option key={status} value={status}>
@@ -213,8 +230,8 @@ function DemandeursManagement() {
             </option>
           ))}
         </select>
-        <label style={{ marginLeft: '16px' }}>Filtrer par service:</label>
-        <select value={filterService} onChange={e => setFilterService(e.target.value)} className="filter-select">
+        <label style={{ marginLeft: '16px' }}>Service:</label>
+        <select value={filterService} onChange={e => { setFilterService(e.target.value); setPage(1); }} className="filter-select">
           <option value="all">Tous</option>
           {uniqueServices.map(s => (
             <option key={s} value={s}>
@@ -222,12 +239,12 @@ function DemandeursManagement() {
             </option>
           ))}
         </select>
-        <label style={{ marginLeft: '16px' }}>Filtrer par jour:</label>
+        <label style={{ marginLeft: '16px' }}>Jour:</label>
         <input
           type="date"
           className="filter-select"
           value={filterDate}
-          onChange={e => setFilterDate(e.target.value)}
+          onChange={e => { setFilterDate(e.target.value); setPage(1); }}
         />
         <span style={{ marginLeft: '10px', fontWeight: 'bold', color: '#4b5563' }}>
           {filteredDemandeurs.length} enregistrement{filteredDemandeurs.length !== 1 ? 's' : ''}
@@ -260,7 +277,7 @@ function DemandeursManagement() {
               </tr>
             </thead>
             <tbody>
-              {filteredDemandeurs.map((demandeur) => (
+              {pagedDemandeurs.map((demandeur) => (
                 <tr key={demandeur.id} className={demandeur.statut_actuel === 'néant' ? 'pending' : ''}>
                   <td className="id-cell">{demandeur.id}</td>
                   <td className="mono">{demandeur.reference_recu}</td>
@@ -325,6 +342,19 @@ function DemandeursManagement() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* ── PAGINATION ── */}
+      {filteredDemandeurs.length > PAGE_SIZE && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', margin: '16px 0' }}>
+          <button className="btn-reload" onClick={() => setPage(1)} disabled={safePage === 1}>«</button>
+          <button className="btn-reload" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}>‹</button>
+          <span style={{ fontWeight: 'bold', color: '#374151' }}>
+            Page {safePage} / {totalPages} &nbsp;·&nbsp; {filteredDemandeurs.length} résultats
+          </span>
+          <button className="btn-reload" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}>›</button>
+          <button className="btn-reload" onClick={() => setPage(totalPages)} disabled={safePage === totalPages}>»</button>
         </div>
       )}
 
