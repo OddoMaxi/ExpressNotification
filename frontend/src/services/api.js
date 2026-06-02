@@ -36,7 +36,7 @@ apiClient.interceptors.response.use(
 // Service d'enregistrement
 export const registrationService = {
   register: (data) => apiClient.post('/registration', data),
-  getAll: () => apiClient.get('/registration'),
+  getAll: () => apiClient.get('/registration?all=true'),
   getById: (id) => apiClient.get(`/registration/${id}`),
   update: (id, data) => apiClient.put(`/registration/${id}`, data),
   delete: (id) => apiClient.delete(`/registration/${id}`),

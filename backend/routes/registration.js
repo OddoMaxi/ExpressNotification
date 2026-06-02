@@ -142,6 +142,17 @@ router.get('/:id', async (req, res) => {
  */
 router.get('/', async (req, res) => {
   try {
+    const fetchAll = req.query.all === 'true';
+
+    if (fetchAll) {
+      const [countRow, demandeurs] = await Promise.all([
+        getQuery('SELECT COUNT(*) AS count FROM demandeurs', []),
+        allQuery('SELECT * FROM demandeurs ORDER BY date_enregistrement DESC', [])
+      ]);
+      const total = parseInt(countRow.count);
+      return res.json({ total, page: 1, limit: total, pages: 1, demandeurs });
+    }
+
     const page  = Math.max(1, parseInt(req.query.page)  || 1);
     const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 100));
     const offset = (page - 1) * limit;
