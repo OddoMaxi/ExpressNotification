@@ -14,6 +14,7 @@ router.post(
   '/',
   [
     body('reference_recu').notEmpty().withMessage('La référence de reçu est requise'),
+    body('reference_recu_express').notEmpty().withMessage('La référence de reçu Express est requise'),
     body('nom').notEmpty().withMessage('Le nom est requis'),
     body('prenom').notEmpty().withMessage('Le prénom est requis'),
     body('telephone')
@@ -33,28 +34,39 @@ router.post(
         });
       }
 
-      const { reference_recu, nom, prenom, telephone, email, service_type, ticket_number } = req.body;
+      const { reference_recu, reference_recu_express, nom, prenom, telephone, email, service_type, ticket_number } = req.body;
 
-      // Vérifier si la référence existe déjà
+      // Vérifier si la référence de reçu existe déjà
       const existing = await getQuery(
         'SELECT id FROM demandeurs WHERE reference_recu = ?',
         [reference_recu]
       );
-
       if (existing) {
         return res.status(400).json({
           error: 'Cette référence de reçu existe déjà dans le système'
         });
       }
 
+      // Vérifier si la référence de reçu Express existe déjà
+      const existingExpress = await getQuery(
+        'SELECT id FROM demandeurs WHERE reference_recu_express = ?',
+        [reference_recu_express]
+      );
+      if (existingExpress) {
+        return res.status(400).json({
+          error: 'Cette référence de reçu Express existe déjà dans le système'
+        });
+      }
+
       // Insérer le demandeur
       const query = `
-        INSERT INTO demandeurs (reference_recu, nom, prenom, telephone, email, service_type, ticket_number)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO demandeurs (reference_recu, reference_recu_express, nom, prenom, telephone, email, service_type, ticket_number)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       const result = await runQuery(query, [
         reference_recu,
+        reference_recu_express,
         nom,
         prenom,
         telephone,
@@ -98,6 +110,7 @@ router.post(
         demandeur: {
           id: result.lastID,
           reference_recu,
+          reference_recu_express,
           nom,
           prenom,
           telephone,

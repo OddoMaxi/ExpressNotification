@@ -44,6 +44,8 @@ async function initializeDatabase() {
       `ALTER TABLE demandeurs ADD COLUMN IF NOT EXISTS statut_actuel TEXT DEFAULT 'néant'`,
       `ALTER TABLE demandeurs ADD COLUMN IF NOT EXISTS derniere_verification TIMESTAMP`,
       `ALTER TABLE demandeurs ADD COLUMN IF NOT EXISTS sms_envoye INTEGER DEFAULT 0`,
+      `ALTER TABLE demandeurs ADD COLUMN IF NOT EXISTS reference_recu_express TEXT`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_demandeurs_recu_express ON demandeurs(reference_recu_express) WHERE reference_recu_express IS NOT NULL`,
     ];
     for (const sql of migrations) await client.query(sql);
 

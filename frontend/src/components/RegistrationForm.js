@@ -9,6 +9,7 @@ import './RegistrationForm.css';
 function RegistrationForm({ onSuccess }) {
   const [formData, setFormData] = useState({
     reference_recu: '',
+    reference_recu_express: '',
     nom: '',
     prenom: '',
     telephone: '',
@@ -45,6 +46,7 @@ function RegistrationForm({ onSuccess }) {
       setMessage('✓ Demandeur enregistré avec succès !');
       setFormData({
         reference_recu: '',
+        reference_recu_express: '',
         nom: '',
         prenom: '',
         telephone: '',
@@ -82,6 +84,19 @@ function RegistrationForm({ onSuccess }) {
             onChange={handleChange}
             required
             placeholder="Ex: REC2024001"
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="reference_recu_express">Référence de Reçu Express:</label>
+          <input
+            type="text"
+            id="reference_recu_express"
+            name="reference_recu_express"
+            value={formData.reference_recu_express}
+            onChange={handleChange}
+            required
+            placeholder="Ex: EXP2024001"
           />
         </div>
 
