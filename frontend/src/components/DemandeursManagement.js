@@ -175,7 +175,8 @@ function DemandeursManagement() {
     const matchService = filterService === 'all' || (d.service_type || 'Express 72h') === filterService;
     const q = search.toLowerCase();
     const matchSearch  = !search || d.nom.toLowerCase().includes(q) || d.prenom.toLowerCase().includes(q)
-                      || (d.telephone || '').includes(q) || (d.reference_recu || '').toLowerCase().includes(q);
+                      || (d.telephone || '').includes(q) || (d.reference_recu || '').toLowerCase().includes(q)
+                      || (d.reference_recu_express || '').toLowerCase().includes(q);
     return matchStatus && matchDate && matchService && matchSearch;
   });
 
@@ -267,6 +268,7 @@ function DemandeursManagement() {
               <tr>
                 <th>ID</th>
                 <th>Référence</th>
+                <th>Réf. Express</th>
                 <th>Nom Complet</th>
                 <th>Téléphone</th>
                 <th>Service</th>
@@ -281,6 +283,7 @@ function DemandeursManagement() {
                 <tr key={demandeur.id} className={demandeur.statut_actuel === 'néant' ? 'pending' : ''}>
                   <td className="id-cell">{demandeur.id}</td>
                   <td className="mono">{demandeur.reference_recu}</td>
+                  <td className="mono">{demandeur.reference_recu_express || '—'}</td>
                   <td className="name-cell">
                     <strong>{demandeur.prenom}</strong> {demandeur.nom}
                   </td>
